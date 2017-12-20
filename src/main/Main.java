@@ -9,6 +9,7 @@ import model.parameters.Globals;
 
 import controller.engine.EngineInterface;
 import controller.newengine.SimulationEngine;
+import downloader.Downloader;
 
 public class Main {
 	
@@ -23,8 +24,11 @@ public class Main {
 	
 	public static void main(String[] args) {
 		
-		 try {
-			 FileInputStream fis =  new FileInputStream("src/configurations/logging.properties");
+		// Download the traces
+		Downloader.getInstance().downloadTraces();
+		
+		try {
+			FileInputStream fis =  new FileInputStream("src/configurations/logging.properties");
 			 LogManager.getLogManager().readConfiguration(fis);
 			 fis.close();
 		 } 
