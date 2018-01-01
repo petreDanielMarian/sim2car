@@ -1,0 +1,5 @@
+// D - download using dropbox M - using Mobiway
+mode=D
+rome=http://mobiway.hpc.pub.ro/rome.zip
+beijing=http://mobiway.hpc.pub.ro/beijing.zip
+sanfrancisco=http://mobiway.hpc.pub.ro/sanfrancisco.zip

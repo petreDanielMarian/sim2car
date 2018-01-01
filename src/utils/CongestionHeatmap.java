@@ -34,7 +34,6 @@ import org.openstreetmap.gui.jmapviewer.MapMarkerDot;
 import org.openstreetmap.gui.jmapviewer.MapPolygonImpl;
 import org.openstreetmap.gui.jmapviewer.MapRectangleImpl;
 
-//import sun.util.locale.StringTokenIterator;
 import controller.newengine.EngineUtils;
 
 public class CongestionHeatmap extends JFrame {

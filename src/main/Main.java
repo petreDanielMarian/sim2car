@@ -17,16 +17,11 @@ public class Main {
     private static final transient Logger logger = Logger.getLogger(Main.class.getName());
 	
 	public static String[] args;
-
-
 	
 	static EngineInterface simulator;
 	
 	public static void main(String[] args) {
-		
-		// Download the traces
-		Downloader.getInstance().downloadTraces();
-		
+				
 		try {
 			FileInputStream fis =  new FileInputStream("src/configurations/logging.properties");
 			 LogManager.getLogManager().readConfiguration(fis);
@@ -40,10 +35,14 @@ public class Main {
 
 		Globals.setUp( args );
 		if (Globals.propertiesFile == null) {
+			// use -prop src\configurations\simulator\rome.properties for e.g.
 			logger.severe("option -prop is mandatory");
 			System.exit(0);
 		}
 		
+		// Download the traces
+		Downloader.getInstance().downloadTraces(Globals.propertiesFile);
+
 		/* enable proxy connection if settings are present */
 		utils.Proxy.checkForProxySettings();
 		

@@ -2,66 +2,77 @@ package downloader;
 
 import java.io.File;
 
+import model.parameters.Globals;
+
 /**
  * This class is used to download the traces for the simulator
  * @author Alex
  *
  */
 public class Downloader {
-	private static Downloader INSTANCE = new Downloader();
+	private static Downloader INSTANCE = null;
+	private String city;
 	
 	private Downloader(){}
 	
 	public static Downloader getInstance() {
+		if (Downloader.INSTANCE == null)
+			Downloader.INSTANCE = new Downloader();
+		
 		return Downloader.INSTANCE;
 	}
 	
-	public void downloadTraces() {
+	/*
+	 * Extract the city name from the give properties file path
+	 */
+	private void extractCity(String propFile) {
 		
-		if (checkIfTracesExist()) {
+		String path [] = Globals.propertiesFile.split("\\\\");
+		System.out.println("Prop file path: " + Globals.propertiesFile);
+		System.out.println("Prop file: " + path[path.length -1]);
+		
+		// Extract city
+		String propF [] = path[path.length -1].split(".p");
+		System.out.println("City: " + propF[0]);
+		System.out.println();
+		
+		city = propF[0];
+	}
+	
+	public void downloadTraces(String propFile) {
+		
+		// Extract the city name
+		extractCity(propFile);
+		
+		if (checkIfTracesExist(this.city)) {
 			System.out.println("Trace files exist - Skipping DOWNLOAD STEP");
 		} else {
 			System.out.println("Trace files don't exist - Starting DOWNLOAD STEP");
 			DownloadCore core = new DownloadCore();
-			
-			// Create archives folder
-			File curDir = new File(".");
-			File t = new File(curDir.getAbsolutePath() + File.separator + "ARCHIVES");
-			t.mkdir();
-
-			String traces = curDir.getAbsolutePath();
-			
-			// Download and unzip BEIJING
-			String archive = t.getAbsolutePath() + File.separator + "beijing.zip";
-
-			core.downloadFile(DownloadLinks.BEIJING_MOBIWAY, archive);
-			core.unZipIt(archive, traces);
-			
-			// Download and unzip ROME
-			archive = t.getAbsolutePath() + File.separator + "rome.zip";
-
-			core.downloadFile(DownloadLinks.ROME_MOBIWAY, archive);
-			core.unZipIt(archive, traces);
-			
-			// Download and unzip SANFRANCISCO
-			archive = t.getAbsolutePath() + File.separator + "sanfrancisco.zip";
-
-			core.downloadFile(DownloadLinks.SANFRANCISCO_MOBIWAY, archive);
-			core.unZipIt(archive, traces);
-
+			core.execute(this.city);
 		}
 	}
-
-	private boolean checkIfTracesExist() {
-		File curDir = new File(".");
-
-		for (File f : curDir.listFiles()) {
-			if (f.getName().equalsIgnoreCase("rawdata") ||
-					f.getName().equalsIgnoreCase("processeddata")) {
+	
+	/*
+	 * Checks if the folders for traces exist for the wanted city
+	 */
+	private boolean checkIfTracesExist(String city) {
+		
+		try {
+			File curDir = new File(".");
+			File f1 = new File(curDir.getAbsolutePath() + File.separator + "rawdata" +
+							File.separator + "traces" + File.separator + city + "cabs");
+			File f2 = new File(curDir.getAbsolutePath() + File.separator + "processeddata" +
+					File.separator + "traces" + File.separator + city);
+			
+			if (f1.exists() && f2.exists())
 				return true;
-			}
+			
+		}catch (SecurityException e) {
+			System.err.println("You don't have read rights");
+			e.printStackTrace();
 		}
-
+		
 		return false;
 	}
 }
