@@ -9,6 +9,7 @@ import model.parameters.Globals;
 
 import controller.engine.EngineInterface;
 import controller.newengine.SimulationEngine;
+import downloader.Downloader;
 
 public class Main {
 	
@@ -16,15 +17,13 @@ public class Main {
     private static final transient Logger logger = Logger.getLogger(Main.class.getName());
 	
 	public static String[] args;
-
-
 	
 	static EngineInterface simulator;
 	
 	public static void main(String[] args) {
-		
-		 try {
-			 FileInputStream fis =  new FileInputStream("src/configurations/logging.properties");
+				
+		try {
+			FileInputStream fis =  new FileInputStream("src/configurations/logging.properties");
 			 LogManager.getLogManager().readConfiguration(fis);
 			 fis.close();
 		 } 
@@ -36,10 +35,14 @@ public class Main {
 
 		Globals.setUp( args );
 		if (Globals.propertiesFile == null) {
+			// use -prop src\configurations\simulator\rome.properties for e.g.
 			logger.severe("option -prop is mandatory");
 			System.exit(0);
 		}
 		
+		// Download the traces
+		Downloader.getInstance().downloadTraces(Globals.propertiesFile);
+
 		/* enable proxy connection if settings are present */
 		utils.Proxy.checkForProxySettings();
 		
