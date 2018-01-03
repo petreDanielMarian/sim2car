@@ -16,4 +16,7 @@ public class DownloadLinks {
 	/* Link for the sanfrancisco traces */
 	public static String SANFRANCISCO_MOBIWAY = 	"http://mobiway.hpc.pub.ro/sanfrancisco.zip";
 	
+	/* Dropbox acces token for ciprian dobre */
+	public static String ACCESS_TOKEN = 			"1rhx1CwxQt8AAAAAAABAWW9BYue31WkKZ2dan-lc2uaC50rjrDZe8vgVksNXrH6v";
+	
 }

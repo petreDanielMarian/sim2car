@@ -26,8 +26,6 @@ public class DownloadCore {
 	List<String> fileList;
 	//Default download mode Dropbox
 	private String mode = "D";
-	// Used for dropbox API
-	private static final String ACCESS_TOKEN = "1rhx1CwxQt8AAAAAAABAWW9BYue31WkKZ2dan-lc2uaC50rjrDZe8vgVksNXrH6v";
 	
 	public static void copyInputStream(InputStream in, OutputStream out) throws IOException {
 		byte[] buffer = new byte[1024];
@@ -48,7 +46,7 @@ public class DownloadCore {
     public void downloadFileDropbox(String archiveName, String archivePath){
         // Create Dropbox client
         DbxRequestConfig config = new DbxRequestConfig("dropbox/java-tutorial");
-        DbxClientV2 client = new DbxClientV2(config, ACCESS_TOKEN);
+        DbxClientV2 client = new DbxClientV2(config, DownloadLinks.ACCESS_TOKEN);
 
         try {
             
@@ -218,14 +216,14 @@ public class DownloadCore {
 
 		try {
 			File dir = new File(".");
-			File fin = new File(dir.getAbsolutePath() + File.separator + "configureDownload.txt");
+			File fin = new File(dir.getAbsolutePath() + File.separator + "Download.config");
 			
 			// Construct BufferedReader from FileReader
 			BufferedReader br = new BufferedReader(new FileReader(fin));
 			// Read the first line witch is a comment
 			line = br.readLine();
 			
-			System.out.println("Reading configureDownload.txt");
+			System.out.println("Reading Download.config");
 			while ((line = br.readLine()) != null) {
 				System.out.println(line);
 				String aux[] = line.split("=");
@@ -238,6 +236,8 @@ public class DownloadCore {
 					DownloadLinks.BEIJING_MOBIWAY = aux[1];
 				} else if (aux[0].equalsIgnoreCase("sanfrancisco")) {
 					DownloadLinks.SANFRANCISCO_MOBIWAY = aux[1];
+				} else if (aux[0].equalsIgnoreCase("token")) {
+					DownloadLinks.ACCESS_TOKEN = aux[1];
 				}
 			}
 			
