@@ -7,6 +7,7 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 
 import model.GeoCar;
+import model.GeoServer;
 import model.parameters.Globals;
 import model.parameters.MapConfig;
 
@@ -22,13 +23,22 @@ public class Viewer {
 	
 	private JMapViewer mapJ;
 	
+	/**
+	 * List with the car views
+	 */
 	private List<CarView> carViewList = new ArrayList<CarView>();
+	
+	/**
+	 * The server view for all the geo servers
+	 */
+	private ServerView serverView;
 	
 	public Viewer(final MapConfig mapConfig) {
 		if (Globals.showGUI) {
 			mapJ = new JMapViewer();
 			mapJ.setDisplayPositionByLatLon(mapConfig.getMapCentre().getY(), mapConfig.getMapCentre().getX(), 11);
-			view = new View(mapConfig.getN(), mapConfig.getM(), mapJ, null, carViewList);
+			serverView = new ServerView(mapConfig.getN(), mapConfig.getM(), new ArrayList<GeoServer>(), mapJ);
+			view = new View(mapConfig.getN(), mapConfig.getM(), mapJ, serverView, carViewList);
 		}
 	}
 
@@ -39,6 +49,12 @@ public class Viewer {
 										(float) Math.random(),
 										(float) Math.random()) );
 			carViewList.add(carView);
+		}
+	}
+	
+	public void addServers(ArrayList<GeoServer> servers) {
+		if (Globals.showGUI) {
+			view.initLocationServer(servers);
 		}
 	}
 

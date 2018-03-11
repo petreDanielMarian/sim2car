@@ -24,7 +24,7 @@ public class ServerView {
 		synchronized (servers) {
 			for (GeoServer sv : servers) {
 				MapPoint pt = sv.getCurrentPos();
-				MapMarkerCircle mk = new MapMarkerCircle(pt.lat, pt.lon, 0.002);
+				MapMarkerCircle mk = new MapMarkerCircle(pt.lat, pt.lon, 0.004);
 				mk.setColor(Color.RED);
 				map.addMapMarker(mk);
 			}
@@ -36,7 +36,7 @@ public class ServerView {
 			servers = new ArrayList<GeoServer>(sers);
 			for (GeoServer sv : servers) {
 				MapPoint pt = sv.getCurrentPos();
-				MapMarkerCircle mk = new MapMarkerCircle(pt.lat, pt.lon, 0.002);
+				MapMarkerCircle mk = new MapMarkerCircle(pt.lat, pt.lon, 0.010);
 				mk.setColor(Color.RED);
 				map.addMapMarker(mk);
 			}

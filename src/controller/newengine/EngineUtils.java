@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.Vector;
@@ -21,6 +23,7 @@ import java.util.logging.Logger;
 import application.Application;
 import application.ApplicationType;
 import application.ApplicationUtils;
+import application.routing.RoutingApplicationParameters;
 import application.routing.RoutingApplicationServer;
 import model.GeoCar;
 import model.GeoCarRoute;
@@ -135,14 +138,14 @@ public final class EngineUtils {
 	 * @param mobilityEngine		the traffic engine to which we must add
 	 * 									the servers we read for this simulation
 	 * 
-	 * TODO: shouldn't we add the servers to the viewer as well? In the initial
-	 * EngineSimulation the ServerView receives the server list...
 	 */
 	static TreeMap<Long,GeoServer> getServers(String serverListFilename, Viewer viewer, MobilityEngine mobilityEngine) {
 		MapConfig mapConfig = SimulationEngine.getInstance().getMapConfig();
 		FileInputStream fstream = null;
 		SphericalMercator mercator = new SphericalMercator();
 		TreeMap<Long,GeoServer> servers = new TreeMap<Long,GeoServer>();
+		ArrayList<GeoServer> serversList = new ArrayList<>();
+		
 		try {
 			logger.info("Path received " + serverListFilename);
 			fstream = new FileInputStream(serverListFilename);
@@ -209,7 +212,9 @@ public final class EngineUtils {
 				}
 
 				servers.put(s.getId(), s);
+				serversList.add(s);
 			}
+			
 			br.close();
 		} catch (IOException ex) {
 			ex.printStackTrace();
@@ -220,10 +225,51 @@ public final class EngineUtils {
 				ex.printStackTrace();
 			}
 		}
+		
+		computeServersPositions(serversList);
+		viewer.addServers(serversList);
 		return servers;
 	}
 	
 	
+	private static void computeServersPositions(ArrayList<GeoServer> servers) {
+		Set<Entry<Long,Way>> ways = MobilityEngine.getInstance().streetsGraph.entrySet();
+		
+		for (Entry<Long,Way> entry : ways) {
+			Way auxWay = entry.getValue();
+			
+			// Check if the ways has any nodes in it
+			if (auxWay.nodes != null && auxWay.nodes.size() > 0) {
+				// We place our server on the first node of the way
+				Node auxNode = auxWay.nodes.get(0);
+				SphericalMercator mercator = new SphericalMercator();
+				MapConfig mapConfig = SimulationEngine.getInstance().getMapConfig();
+				
+				PixelLocation pix = mercator.LatLonToPixelLoc(auxNode.lat, auxNode.lon, Globals.zoomLevel);
+
+				pix.tile.y -= mapConfig.getBaseRow();
+				pix.tile.x -= mapConfig.getBaseColumn();
+
+				MapPoint mp = new MapPoint(pix, auxNode.lat, auxNode.lon, false, 0);
+
+				GeoServer s = new GeoServer(mapConfig.getN(), mapConfig.getM(), count, mp);
+				boolean control = true;
+				
+				for (GeoServer s1 : servers) {
+					if (Utils.distance(s.getCurrentPos().lat, s.getCurrentPos().lon,
+							s1.getCurrentPos().lat, s1.getCurrentPos().lon) < RoutingApplicationParameters.distMax + 2000) {
+						control = false;
+						break;
+					}
+				}
+				
+				if (control) {
+					servers.add(s);
+				}
+				
+			}
+		}
+	}
 	/**
 	 * Load the street graph in memory.
 	 * 
