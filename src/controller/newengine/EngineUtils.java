@@ -188,9 +188,9 @@ public final class EngineUtils {
 
 				count++;
 				MapPoint mp = new MapPoint(pix, lat, lon, false, 0);
-				/* TODO: GeoServer requires a GeoMap passed to it as last argument.
-				 * I don't see why the application can't take it from the SimulationEngine. */
+
 				GeoServer s = new GeoServer(mapConfig.getN(), mapConfig.getM(), count, mp);
+
 
 				s.addNetworkInterface(new NetworkWiFi(s));
 				
@@ -257,7 +257,7 @@ public final class EngineUtils {
 				
 				for (GeoServer s1 : servers) {
 					if (Utils.distance(s.getCurrentPos().lat, s.getCurrentPos().lon,
-							s1.getCurrentPos().lat, s1.getCurrentPos().lon) < RoutingApplicationParameters.distMax + 2000) {
+							s1.getCurrentPos().lat, s1.getCurrentPos().lon) < 3000 + RoutingApplicationParameters.distMax) {
 						control = false;
 						break;
 					}
@@ -269,6 +269,8 @@ public final class EngineUtils {
 				
 			}
 		}
+		
+		System.out.println(servers.size());
 	}
 	/**
 	 * Load the street graph in memory.
@@ -429,42 +431,42 @@ public final class EngineUtils {
 	 * @param args
 	 * @throws InterruptedException
 	 */
-	public static void main(String[] args) throws InterruptedException {
-		long microseconds, end, start = System.nanoTime();
-		
+//	public static void main(String[] args) throws InterruptedException {
+//		long microseconds, end, start = System.nanoTime();
+//		
+////		TreeMap<Long, Way> graph = EngineUtils.loadGraph(
+////				"res\\Xml\\streets_rez_san-francisco.osm",
+////				"res\\Xml\\streets_graph_san-francisco.osm");
 //		TreeMap<Long, Way> graph = EngineUtils.loadGraph(
-//				"res\\Xml\\streets_rez_san-francisco.osm",
-//				"res\\Xml\\streets_graph_san-francisco.osm");
-		TreeMap<Long, Way> graph = EngineUtils.loadGraph(
-				"res\\XmlBeijing\\streets_rez_beijing.osm",
-				"res\\XmlBeijing\\streets_graph_beijing.osm");
-		end = System.nanoTime();
-		microseconds = (end - start) / 1000;
-		logger.info("graph loaded in " + microseconds / 1000.0 + " milliseconds");
-		Thread.sleep(2000);
-		
-		start = System.nanoTime();
-		/* Generate peano keys for each road */
-		ArrayList<PeanoKey> peanoKeys = new ArrayList<PeanoKey>();
-		SphericalMercator mercator = new SphericalMercator();
-		for (Way w : graph.values()) {
-			peanoKeys.addAll(w.buildPeanoKeys(mercator));
-		}
-		end = System.nanoTime();
-		microseconds = (end - start) / 1000;
-		logger.info("PeanoKeys built in " + microseconds / 1000.0 + " milliseconds");
-		Thread.sleep(2000);
-		
-		
-		start = System.nanoTime();
-		/* sort the PeanoKey vector */
-		Collections.sort(peanoKeys);
-		end = System.nanoTime();
-		microseconds = (end - start) / 1000;
-		logger.info("PeanoKeys sorted in " + microseconds / 1000.0 + " milliseconds");
-		Thread.sleep(2000);
-		
-		
-		logger.info(peanoKeys.size() + " PeanoKeys generated");
-	}
+//				"res\\XmlBeijing\\streets_rez_beijing.osm",
+//				"res\\XmlBeijing\\streets_graph_beijing.osm");
+//		end = System.nanoTime();
+//		microseconds = (end - start) / 1000;
+//		logger.info("graph loaded in " + microseconds / 1000.0 + " milliseconds");
+//		Thread.sleep(2000);
+//		
+//		start = System.nanoTime();
+//		/* Generate peano keys for each road */
+//		ArrayList<PeanoKey> peanoKeys = new ArrayList<PeanoKey>();
+//		SphericalMercator mercator = new SphericalMercator();
+//		for (Way w : graph.values()) {
+//			peanoKeys.addAll(w.buildPeanoKeys(mercator));
+//		}
+//		end = System.nanoTime();
+//		microseconds = (end - start) / 1000;
+//		logger.info("PeanoKeys built in " + microseconds / 1000.0 + " milliseconds");
+//		Thread.sleep(2000);
+//		
+//		
+//		start = System.nanoTime();
+//		/* sort the PeanoKey vector */
+//		Collections.sort(peanoKeys);
+//		end = System.nanoTime();
+//		microseconds = (end - start) / 1000;
+//		logger.info("PeanoKeys sorted in " + microseconds / 1000.0 + " milliseconds");
+//		Thread.sleep(2000);
+//		
+//		
+//		logger.info(peanoKeys.size() + " PeanoKeys generated");
+//	}
 }

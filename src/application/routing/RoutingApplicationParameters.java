@@ -12,7 +12,7 @@ public class RoutingApplicationParameters {
 	public static int maxdepth = 10; 
 
 	/** The maximum distance that can accept intersections from the one Area (meters) */
-	public static double distMax = 500;
+	public static double distMax = 5000;
 
 	/** Routing Application states */
 	public static RoutingApplicationState state = /*RoutingApplicationState.COST_COLLECTING*/RoutingApplicationState.RUN_USING_ONLY_PAGERANK;
