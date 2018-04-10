@@ -51,11 +51,13 @@ public class RoutingApplicationServer extends Application{
 
 	/* The global graph with costs */
 	public TreeMap<Long, TreeMap<Pair<Long,Long>,Double>> globalCostsGraph = new TreeMap<Long, TreeMap<Pair<Long,Long>,Double>>();
-
+	
 	public RoutingApplicationServer(GeoServer serv) {
 		this.serv = serv;
 		initializeStreetsCostGraph();
+
 	}
+	
 	public void printStreetsCostGraph(String filename)
 	{
 		try {
@@ -171,7 +173,7 @@ public class RoutingApplicationServer extends Application{
 			RoutingRoadCost localCost = costs.get(new Pair<Long,Long>(data.jointId, data.nextStreet));
 			if( localCost == null )
 			{
-				System.out.println( 
+				System.out.println( "SERVER " + serv.getId() + " " +
 							 "Street " + data.prevStreet + " is not linked with street " + data.nextStreet +
 							 " via joinction " + data.jointId
 							);
@@ -310,12 +312,9 @@ public class RoutingApplicationServer extends Application{
 
 			for( Pair<Long,Long> n : outstreetsIDs)
 			{
-				/* TODO: Enable this condition when multi-area servers feature will be
-				 * activated.
-				 *
-				 * if( belongToCrtArea(streetsGraph, n))
-				*/
-				costs.put(n, new RoutingRoadCost());
+				if( belongToCrtArea(streetsGraph, n)) {
+					costs.put(n, new RoutingRoadCost());
+				}
 			}
 
 			areaCostsGraph.put( tmpSt.id, costs);
@@ -324,49 +323,20 @@ public class RoutingApplicationServer extends Application{
 	}
 
 	/* These functions should be used when there are multiple servers */
-	public boolean belongToCrtArea( TreeMap<Long, Way> streetsGraph, Pair<Long,Long> n )
-	{
-		double latmin = 0d, latmax = 0d, lonmin = 0d, lonmax = 0d;
+	public boolean belongToCrtArea( TreeMap<Long, Way> streetsGraph, Pair<Long,Long> n ) {
 		Way street = streetsGraph.get(n.getSecond());
-
-		if( street.oneway )
-			return true;
-
 		Node nd = street.getNode(n.getFirst());
-
+		
 		MapPoint mp = serv.getCurrentPos();
-		latmin = mp.lat - latEdge/2;
-		latmax = mp.lat + latEdge/2;
-
-		lonmin = mp.lon - lonEdge/2;
-		lonmax = mp.lon + lonEdge/2;
-
-		if( latmin <= nd.lat && nd.lat <= latmax )
-		{
-			if( lonmin <= nd.lon && nd.lon <= lonmax )
-				return true;
+		//System.out.println(mp +"----" +nd + "----" +street + "----" + n.getFirst());
+		
+		if (nd == null)
+			return false;
+		
+		if (Utils.distance(mp.lat, mp.lon, nd.lat, nd.lon) < RoutingApplicationParameters.regionDistance) {
+			return true;
 		}
-
-		/* left edge */
-		Node prj = Utils.getOSMProjection( nd, new Node(-1, latmin, lonmin), new Node(-1, latmin, lonmax) );
-		if( Utils.distance(nd.lat, nd.lon, prj.lat, prj.lon) < RoutingApplicationParameters.distMax )
-			return true;
-
-		/* right edge */
-		prj = Utils.getOSMProjection( nd, new Node(-1, latmax, lonmin), new Node(-1, latmax, lonmax) );
-		if( Utils.distance(nd.lat, nd.lon, prj.lat, prj.lon) < RoutingApplicationParameters.distMax )
-			return true;
-
-		/* top edge */
-		prj = Utils.getOSMProjection( nd, new Node(-1, latmin, lonmin), new Node(-1, latmax, lonmin) );
-		if( Utils.distance(nd.lat, nd.lon, prj.lat, prj.lon) < RoutingApplicationParameters.distMax )
-			return true;
-
-		/* bottom edge */
-		prj = Utils.getOSMProjection( nd, new Node(-1, latmax, lonmin), new Node(-1, latmax, lonmax) );
-		if( Utils.distance(nd.lat, nd.lon, prj.lat, prj.lon) < RoutingApplicationParameters.distMax )
-			return true;
-
+		
 		return false;
 	}
 }

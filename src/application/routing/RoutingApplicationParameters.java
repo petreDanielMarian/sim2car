@@ -13,6 +13,9 @@ public class RoutingApplicationParameters {
 
 	/** The maximum distance that can accept intersections from the one Area (meters) */
 	public static double distMax = 5000;
+	
+	/** The maximum distance from server location to it's outbounds */
+	public static double regionDistance = 3000 + RoutingApplicationParameters.distMax;
 
 	/** Routing Application states */
 	public static RoutingApplicationState state = /*RoutingApplicationState.COST_COLLECTING*/RoutingApplicationState.RUN_USING_ONLY_PAGERANK;

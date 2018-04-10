@@ -116,10 +116,12 @@ public class SimulationEngine implements EngineInterface {
 				
 				while (run) {
 					time++;
+					int c = 0;
 					for (Entity e : entities.values()) {
-						if (e instanceof GeoServer) {
+						if (e instanceof GeoServer && c == 0) {
 							//streetData.append(((GeoCar) e).runApplications());
 							threadPool.submit(new ServerApplicationsRun((GeoServer) e));
+							c = 1;
 						}
 						if (e instanceof GeoCar && ((GeoCar) e).getActive() == 1) {
 							threadPool.submit(new CarApplicationsRun((GeoCar) e));
@@ -214,6 +216,8 @@ public class SimulationEngine implements EngineInterface {
 		for (Entity e : entities.values()) {
 			if (e instanceof GeoServer) {
 				servers.add((GeoServer)e);
+				System.out.println(e.getId());
+				break; /// TO REMOVE TO ONLY USE ONE SERVER
 			}
 		}
 		return servers;

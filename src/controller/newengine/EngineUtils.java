@@ -53,6 +53,10 @@ public final class EngineUtils {
     
 	/* for traffic entities id */
 	static int count = 0;
+	
+	/* Server info */
+	static double latEdge = 0d, lonEdge = 0d;
+	static long rows = 0, cols = 0;
 
 	private EngineUtils() {}
 
@@ -151,8 +155,7 @@ public final class EngineUtils {
 			fstream = new FileInputStream(serverListFilename);
 			BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
 			String line;
-			double latEdge = 0d, lonEdge = 0d;
-			long rows = 0, cols = 0;
+
 
 			while ((line = br.readLine()) != null) {
 				if (line.startsWith("#"))
@@ -190,26 +193,9 @@ public final class EngineUtils {
 				MapPoint mp = new MapPoint(pix, lat, lon, false, 0);
 
 				GeoServer s = new GeoServer(mapConfig.getN(), mapConfig.getM(), count, mp);
-
-
-				s.addNetworkInterface(new NetworkWiFi(s));
+				System.out.println(s.getId());
 				
-				/* Create each application which is defined */
-				for( ApplicationType type : Globals.activeApplications )
-				{
-					Application app = ApplicationUtils.activateApplicationServer(type, s);
-					if( app == null )
-					{
-						logger.info(" Failed to create application with type " + type);
-						continue;
-					}
-					if( app.getType() == ApplicationType.ROUTING_APP )
-					{
-						((RoutingApplicationServer)app).setGridSize(rows, cols);
-						((RoutingApplicationServer)app).setServerAreaSizes(latEdge, lonEdge);
-					}
-					s.addApplication( app );
-				}
+				addApplicationToServer(s);
 
 				servers.put(s.getId(), s);
 				serversList.add(s);
@@ -226,13 +212,34 @@ public final class EngineUtils {
 			}
 		}
 		
-		computeServersPositions(serversList);
+		computeServersPositions(serversList, servers);
 		viewer.addServers(serversList);
 		return servers;
 	}
 	
+	private static void addApplicationToServer(GeoServer s) {
+		s.addNetworkInterface(new NetworkWiFi(s));
+		
+		/* Create each application which is defined */
+		for( ApplicationType type : Globals.activeApplications )
+		{
+			Application app = ApplicationUtils.activateApplicationServer(type, s);
+			if( app == null )
+			{
+				logger.info(" Failed to create application with type " + type);
+				continue;
+			}
+			if( app.getType() == ApplicationType.ROUTING_APP )
+			{
+				((RoutingApplicationServer)app).setGridSize(rows, cols);
+				((RoutingApplicationServer)app).setServerAreaSizes(latEdge, lonEdge);
+			}
+			s.addApplication(app);
+		}
+	}
 	
-	private static void computeServersPositions(ArrayList<GeoServer> servers) {
+	
+	private static void computeServersPositions(ArrayList<GeoServer> servers, TreeMap<Long, GeoServer> serversMap) {
 		Set<Entry<Long,Way>> ways = MobilityEngine.getInstance().streetsGraph.entrySet();
 		
 		for (Entry<Long,Way> entry : ways) {
@@ -249,7 +256,8 @@ public final class EngineUtils {
 
 				pix.tile.y -= mapConfig.getBaseRow();
 				pix.tile.x -= mapConfig.getBaseColumn();
-
+				
+				count++;
 				MapPoint mp = new MapPoint(pix, auxNode.lat, auxNode.lon, false, 0);
 
 				GeoServer s = new GeoServer(mapConfig.getN(), mapConfig.getM(), count, mp);
@@ -257,14 +265,18 @@ public final class EngineUtils {
 				
 				for (GeoServer s1 : servers) {
 					if (Utils.distance(s.getCurrentPos().lat, s.getCurrentPos().lon,
-							s1.getCurrentPos().lat, s1.getCurrentPos().lon) < 3000 + RoutingApplicationParameters.distMax) {
+							s1.getCurrentPos().lat, s1.getCurrentPos().lon) < RoutingApplicationParameters.regionDistance) {
 						control = false;
 						break;
 					}
 				}
 				
 				if (control) {
+					count++;
+					s.setId(count);
+					addApplicationToServer(s);
 					servers.add(s);
+					serversMap.put(s.getId(), s);
 				}
 				
 			}
