@@ -27,6 +27,7 @@ public abstract class NetworkInterface {
 	public abstract void processOutputQueue();
 	public abstract ArrayList<NetworkInterface> discoversServers();
 	public abstract ArrayList<NetworkInterface> discoversPeers();
+	public abstract NetworkInterface discoverClosestServer();
 	
 
 	public NetworkInterface(NetworkType type) {

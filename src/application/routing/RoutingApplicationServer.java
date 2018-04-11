@@ -290,17 +290,15 @@ public class RoutingApplicationServer extends Application{
 		this.latEdge = latEdge;
 		this.lonEdge = lonEdge;
 	}
-	public void initializeStreetsCostGraph()
-	{
+
+	public void initializeStreetsCostGraph() {
 
 		TreeMap<Long, Way> streetsGraph = MobilityEngine.getInstance().streetsGraph;
 		/* iterate over each street and detect the output */
-		for( Long streetID:streetsGraph.keySet() )
-		{
+		for( Long streetID:streetsGraph.keySet() ) {
 			Way tmpSt = streetsGraph.get(streetID);
 
-			if( tmpSt == null )
-			{
+			if( tmpSt == null ) {
 				logger.info( streetID + "there is not presented in the graph of Streets \n");
 				continue;
 			}
@@ -310,8 +308,7 @@ public class RoutingApplicationServer extends Application{
 
 			TreeMap<Pair<Long,Long>,RoutingRoadCost> costs = new TreeMap<Pair<Long,Long>,RoutingRoadCost>();
 
-			for( Pair<Long,Long> n : outstreetsIDs)
-			{
+			for( Pair<Long,Long> n : outstreetsIDs) {
 				if( belongToCrtArea(streetsGraph, n)) {
 					costs.put(n, new RoutingRoadCost());
 				}
@@ -328,7 +325,6 @@ public class RoutingApplicationServer extends Application{
 		Node nd = street.getNode(n.getFirst());
 		
 		MapPoint mp = serv.getCurrentPos();
-		//System.out.println(mp +"----" +nd + "----" +street + "----" + n.getFirst());
 		
 		if (nd == null)
 			return false;

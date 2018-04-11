@@ -6,9 +6,11 @@ import model.Entity;
 import model.GeoCar;
 import model.GeoServer;
 import model.network.Message;
+import utils.tracestool.Utils;
 
 import com.beust.jcommander.Parameter;
 
+import application.routing.RoutingApplicationParameters;
 import controller.engine.EngineInterface;
 import controller.engine.EngineSimulation;
 import controller.newengine.SimulationEngine;
@@ -67,7 +69,33 @@ public class NetworkWiFi extends NetworkInterface {
 		return serversInRange;
 	}
 	
-	
+
+	@Override
+	public NetworkInterface discoverClosestServer() {
+		Entity owner = getOwner();
+		ArrayList<GeoServer> servers = (ArrayList<GeoServer>) owner.getServers();
+		
+		GeoServer serverInRange = servers.get(0);
+		double maxDist = Utils.distance(owner.getCurrentPos().lat, owner.getCurrentPos().lon,
+				serverInRange.getCurrentPos().lat, serverInRange.getCurrentPos().lon);
+		
+		double dist = 0;
+
+		for (int i = 0; i < servers.size(); i++) {
+			GeoServer s = servers.get(i);
+			dist = Utils.distance(owner.getCurrentPos().lat, owner.getCurrentPos().lon,
+					s.getCurrentPos().lat, s.getCurrentPos().lon);
+			if (dist < RoutingApplicationParameters.distMax) {
+				if (dist < maxDist) {
+					maxDist = dist;
+					serverInRange = s;
+				}
+
+			}
+		}
+		
+		return serverInRange.getNetworkInterface(this.getType());
+	}
 	
 	 public Message getNextInputMessage() {
 		return this.getInputQueue().remove(0);

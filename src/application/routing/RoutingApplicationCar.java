@@ -99,7 +99,7 @@ public class RoutingApplicationCar extends Application {
 		Double g = 0d;
 		Node intersection = new Node(-1, -1, -1);
 		NetworkInterface net = car.getNetworkInterface(NetworkType.Net_WiFi);
-		ArrayList<NetworkInterface> discoversServerset = ((NetworkWiFi)net).discoversServers();
+		NetworkInterface discoversServerset = ((NetworkWiFi)net).discoverClosestServer();
 
 		if( car.getCurrentPos() != null && lastStreet != car.getCurrentPos().wayId )
 		{
@@ -151,7 +151,7 @@ public class RoutingApplicationCar extends Application {
 
 					g = car.getCongestionDegree(AVGspeed, maxSpeed);
 
-					Message msg = new Message(car.getId(), discoversServerset.get(0).getOwner().getId(), null, MessageType.REQUEST_ROUTE_UPDATE, ApplicationType.ROUTING_APP);
+					Message msg = new Message(car.getId(), discoversServerset.getOwner().getId(), null, MessageType.REQUEST_ROUTE_UPDATE, ApplicationType.ROUTING_APP);
 					RoutingApplicationData data = new RoutingApplicationData("Route Request from car " + car.getId(), g, oldPos.wayId, crtPos.wayId, jointPoint.id, crtTime);
 
 					
@@ -185,7 +185,7 @@ public class RoutingApplicationCar extends Application {
 						/* here g is zero, so will decrease the congestion average,
 						 * so it will be ignored.
 						 */
-						Message msg = new Message(car.getId(), discoversServerset.get(0).getOwner().getId(), null, MessageType.REQUEST_ROUTE_UPDATE, ApplicationType.ROUTING_APP);
+						Message msg = new Message(car.getId(), discoversServerset.getOwner().getId(), null, MessageType.REQUEST_ROUTE_UPDATE, ApplicationType.ROUTING_APP);
 						RoutingApplicationData data = new RoutingApplicationData("Route Request from car " + car.getId(), g, oldPos.wayId, crtPos.wayId, -1, crtTime);
 
 						

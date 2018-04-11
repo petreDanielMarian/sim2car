@@ -214,6 +214,7 @@ public final class EngineUtils {
 		
 		computeServersPositions(serversList, servers);
 		viewer.addServers(serversList);
+		System.out.println(servers.size() + " " + count);
 		return servers;
 	}
 	
@@ -257,7 +258,6 @@ public final class EngineUtils {
 				pix.tile.y -= mapConfig.getBaseRow();
 				pix.tile.x -= mapConfig.getBaseColumn();
 				
-				count++;
 				MapPoint mp = new MapPoint(pix, auxNode.lat, auxNode.lon, false, 0);
 
 				GeoServer s = new GeoServer(mapConfig.getN(), mapConfig.getM(), count, mp);
