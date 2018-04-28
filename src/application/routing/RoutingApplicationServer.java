@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 
 import utils.Pair;
 import utils.tracestool.Utils;
+import controller.engine.EngineInterface;
 import controller.engine.EngineSimulation;
 import controller.network.NetworkInterface;
 import controller.network.NetworkType;
@@ -18,6 +19,7 @@ import controller.newengine.SimulationEngine;
 import application.Application;
 import application.ApplicationType;
 import application.routing.RoutingApplicationData.RoutingApplicationState;
+import model.Entity;
 import model.GeoCarRoute;
 import model.GeoServer;
 import model.MapPoint;
@@ -173,10 +175,10 @@ public class RoutingApplicationServer extends Application{
 			RoutingRoadCost localCost = costs.get(new Pair<Long,Long>(data.jointId, data.nextStreet));
 			if( localCost == null )
 			{
-				System.out.println( "SERVER " + serv.getId() + " " +
-							 "Street " + data.prevStreet + " is not linked with street " + data.nextStreet +
-							 " via joinction " + data.jointId
-							);
+//				System.out.println( "SERVER " + serv.getId() + " " +
+//							 "Street " + data.prevStreet + " is not linked with street " + data.nextStreet +
+//							 " via joinction " + data.jointId
+//							);
 
 				if( data.avgspeed != 0 && data.avgspeed < 36)
 				{
@@ -226,16 +228,27 @@ public class RoutingApplicationServer extends Application{
 		if( msgType == MessageType.NO_ROUTE_UPDATE )
 			return;
 	
-
-		Long round = stRound.get(data.startRoutePoint.wayId);
-		if( round == null )
-			return;
-		round = (round + 1) % Long.MAX_VALUE;
-		stRound.put(data.startRoutePoint.wayId, round);
-		if( round % 2 == 0 )
-		{
+		
+		/* get destination Entity */
+		EngineInterface engine = SimulationEngine.getInstance();
+		/* Maintain backward compatibility with old simulator */
+		Entity destEntity = engine != null ? ((SimulationEngine)engine).getEntityById(m.getSourceId()): 
+							EngineSimulation.getInstance().getCarById((int)m.getSourceId());
+		
+		if (Utils.distance(serv.getCurrentPos().lat, serv.getCurrentPos().lon,
+				destEntity.getCurrentPos().lat, destEntity.getCurrentPos().lon) > RoutingApplicationParameters.distMax) {
+			System.out.println("Car " + destEntity.getId() + "has no server in range");
 			return;
 		}
+//		Long round = stRound.get(data.startRoutePoint.wayId);
+//		if( round == null )
+//			return;
+//		round = (round + 1) % Long.MAX_VALUE;
+//		stRound.put(data.startRoutePoint.wayId, round);
+//		if( round % 2 == 0 )
+//		{
+//			return;
+//		}
 		if( m.getType() == MessageType.REQUEST_ROUTE_UPDATE )
 		{
 			GeoCarRoute newroute = null;
@@ -329,7 +342,7 @@ public class RoutingApplicationServer extends Application{
 		if (nd == null)
 			return false;
 		
-		if (Utils.distance(mp.lat, mp.lon, nd.lat, nd.lon) < RoutingApplicationParameters.regionDistance) {
+		if (Utils.distance(mp.lat, mp.lon, nd.lat, nd.lon) <= RoutingApplicationParameters.distMax) {
 			return true;
 		}
 		

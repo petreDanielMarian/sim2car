@@ -47,7 +47,7 @@ public class Globals {
 	public static int debug = 0;
 	
 	@Parameter(names = {"--carsCount"}, description = "The number of cars simulated.")
-    public static int carsCount = 1;
+    public static int carsCount = 50;
 
 	
 	@Parameter(names = {"--loadGraph"}, description = "Activate the loading graph.", arity = 1)
