@@ -1,18 +1,24 @@
 package application.routing;
 
+import java.io.Serializable;
 import java.util.TreeSet;
 
 import controller.newengine.SimulationEngine;
 import utils.Pair;
 
-public class RoutingRoadCost {
+public class RoutingRoadCost implements Serializable{
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 2346033001073719718L;
 	public double cost = 0;
 	public TreeSet<Pair<Long,Double>> costs;
 	public Double[] c = { -1d, -1d, -1d, -1d };
 	public Double w0 = 0.4;
 	public int weightNr = 4;
 	public Double[] w = { 0.3, 0.15, 0.10, 0.05 };
+	long time = 0L;
 
 	public RoutingRoadCost()
 	{
@@ -25,6 +31,7 @@ public class RoutingRoadCost {
 
 	public double updateStreetCost( double cost, long timestamp )
 	{
+		time = timestamp;
 		long crtHourStart = SimulationEngine.getInstance().getSimulationTime() - RoutingApplicationParameters.SamplingInterval;
 		long nr = 0l;
 		double costSum = 0d, c_road_now = 0d, c_road = 0d;

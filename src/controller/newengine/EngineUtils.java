@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -215,7 +216,26 @@ public final class EngineUtils {
 		computeServersPositions(serversList, servers);
 		viewer.addServers(serversList);
 		System.out.println(servers.size() + " " + count);
+		computeServerNeighbors(servers);
+		
+		for (Map.Entry<Long, GeoServer> entry1 : servers.entrySet())
+			System.out.println(entry1.getValue().neighServers);
 		return servers;
+	}
+	
+	public static void computeServerNeighbors(TreeMap<Long, GeoServer> serversMap) {
+		for (Map.Entry<Long, GeoServer> entry1 : serversMap.entrySet()) {
+			for (Map.Entry<Long, GeoServer> entry2 : serversMap.entrySet()) {
+				GeoServer s1 = entry1.getValue();
+				GeoServer s2 = entry2.getValue();
+				
+				if (Utils.distance(s1.getCurrentPos().lat, s1.getCurrentPos().lon,
+						s2.getCurrentPos().lat, s2.getCurrentPos().lon) < RoutingApplicationParameters.regionDistance +
+						RoutingApplicationParameters.distMax && s1.getId() != s2.getId()) {
+					s1.neighServers.add(s2.getId());
+				}
+			}
+		}
 	}
 	
 	private static void addApplicationToServer(GeoServer s) {

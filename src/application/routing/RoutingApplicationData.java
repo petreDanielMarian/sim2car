@@ -1,9 +1,11 @@
 package application.routing;
 
 import java.io.Serializable;
+import java.util.TreeMap;
 
 import model.GeoCarRoute;
 import model.MapPoint;
+import utils.Pair;
 
 public class RoutingApplicationData implements Serializable {
 	
@@ -27,6 +29,7 @@ public class RoutingApplicationData implements Serializable {
 	public double avgspeed = 0;
 	public MapPoint startRoutePoint, endRoutePoint;
 	GeoCarRoute route = null;
+	TreeMap<Pair<Long,Long>, RoutingRoadCost> costs = null;
 	
 	public RoutingApplicationData(String msg, double congestion, long prevStreet, long nextStreet, long jointId, long timestamp) {
 		
@@ -47,6 +50,14 @@ public class RoutingApplicationData implements Serializable {
 	public void setNewRoute( GeoCarRoute route )
 	{
 		this.route = route;
+	}
+	
+	public void setRoutingCost(TreeMap<Pair<Long,Long>, RoutingRoadCost> c) {
+		this.costs = c;
+	}
+	
+	public TreeMap<Pair<Long,Long>, RoutingRoadCost> getRoutingCost() {
+		return this.costs;
 	}
 	
 	public boolean equals(Object md) {
