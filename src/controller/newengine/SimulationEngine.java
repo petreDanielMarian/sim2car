@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -95,7 +96,13 @@ public class SimulationEngine implements EngineInterface {
 		
 		entities.putAll(EngineUtils.getCars(getMapConfig().getTracesListFilename(), viewer, mobilityEngine) );
 		entities.putAll(EngineUtils.getServers(getMapConfig().getAccessPointsFilename(), viewer, mobilityEngine) );
-
+		
+		for (Entity e : entities.values()) {
+			if (e instanceof GeoServer) {
+				EngineUtils.addApplicationToServer((GeoServer) e);
+			}
+		}
+		
 		simulation = new Runnable() {
 			
 			@Override

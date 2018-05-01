@@ -1,6 +1,7 @@
 package application.routing;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.TreeSet;
 
 import controller.newengine.SimulationEngine;
@@ -19,6 +20,7 @@ public class RoutingRoadCost implements Serializable{
 	public int weightNr = 4;
 	public Double[] w = { 0.3, 0.15, 0.10, 0.05 };
 	long time = 0L;
+	ArrayList<Long> commonServers = new ArrayList<Long>();
 
 	public RoutingRoadCost()
 	{

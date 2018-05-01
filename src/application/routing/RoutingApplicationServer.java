@@ -106,6 +106,7 @@ public class RoutingApplicationServer extends Application{
 	@Override
 	public String run() {
 		NetworkInterface net = serv.getNetworkInterface(NetworkType.Net_WiFi);
+		sendWayCosts();
 		net.processOutputQueue();
 		if( RoutingApplicationParameters.routingapp_debug )
 		{
@@ -117,6 +118,33 @@ public class RoutingApplicationServer extends Application{
 			}
 		}
 		return "";
+	}
+
+	long base = 500L;
+	/* Send message with updated road cost to server */
+	private void sendWayCosts() {
+		if (SimulationEngine.getInstance().getSimulationTime() == base) {
+			base += 500;
+			for (Long neighId : serv.neighServers) {
+				for (Map.Entry<Long, TreeMap<Pair<Long,Long>,RoutingRoadCost>> entry : areaCostsGraph.entrySet()) {
+					Long prevStreet = entry.getKey();
+					for (Map.Entry<Pair<Long,Long>,RoutingRoadCost> entry2 : entry.getValue().entrySet()) {
+						if (entry2.getValue().commonServers.contains(neighId)) {
+							Message m = new Message(serv.getId(), neighId, null, MessageType.SERVER_UPDATE, ApplicationType.ROUTING_APP);
+							RoutingApplicationData data = new RoutingApplicationData( "Road Info from: " + serv.getId(),
+									0, prevStreet, -1, -1,
+									SimulationEngine.getInstance().getSimulationTime());
+							data.setC(entry2.getValue());
+							data.setP(entry2.getKey());
+							m.setPayload(data);
+							this.serv.getNetworkInterface(NetworkType.Net_WiFi).putMessage(m);
+						}
+					}
+				}
+
+
+			}
+		}
 	}
 	@Override
 	public String stop(){
@@ -149,26 +177,24 @@ public class RoutingApplicationServer extends Application{
 			return;
 
 		RoutingApplicationData data = (RoutingApplicationData)m.getPayload();
-		
+
+		// Update server info with info from neighbor servers.
 		if (m.getType() == MessageType.SERVER_UPDATE) {
 			TreeMap<Pair<Long,Long>, RoutingRoadCost> costs = areaCostsGraph.get(data.prevStreet);
-			
-			if (costs == null) {
-				areaCostsGraph.put(data.prevStreet, data.costs);
-				return;
+
+			/* IF we dnt have the cost we add it */
+			if (costs.get(data.getP()) == null) {
+				costs.put(data.getP(), data.getC());
+				System.out.println("add");
+			} else if (costs.get(data.getP()).time > data.getC().time) {
+				costs.put(data.getP(), data.getC());
+				System.out.println("update");
 			}
-			
-			for (Map.Entry<Pair<Long,Long>, RoutingRoadCost> p : data.costs.entrySet()) {
-				if (costs.get(p.getKey()) == null) {
-					costs.put(p.getKey(), p.getValue());
-				} else if (costs.get(p.getKey()).time < p.getValue().time) {
-					costs.put(p.getKey(), p.getValue());
-				}
-			}
+
 			areaCostsGraph.put(data.prevStreet, costs);
 			return;
 		}
-		
+
 		//System.out.println("The message received type is " + m.getType() + " from " + m.getSourceId() + "   "+((RoutingApplicationData)m.getPayload()).congestion );
 		NetworkInterface net = serv.getNetworkInterface(NetworkType.Net_WiFi);
 		if( SimulationEngine.getInstance().getSimulationTime() / RoutingApplicationParameters.SamplingInterval < 1 )
@@ -343,8 +369,20 @@ public class RoutingApplicationServer extends Application{
 			TreeMap<Pair<Long,Long>,RoutingRoadCost> costs = new TreeMap<Pair<Long,Long>,RoutingRoadCost>();
 
 			for( Pair<Long,Long> n : outstreetsIDs) {
-				if( belongToCrtArea(streetsGraph, n)) {
-					costs.put(n, new RoutingRoadCost());
+				if( belongToCrtArea(streetsGraph, n, this.serv)) {
+					RoutingRoadCost c = new RoutingRoadCost();
+					// Add myself as common
+					c.commonServers.add(this.serv.getId());
+					// Add neighbors as common
+					//System.out.println("aici");
+					for (Long neighId : this.serv.neighServers) {
+						GeoServer s = (GeoServer) SimulationEngine.getInstance().getEntityById(neighId); 
+						if (s != null && belongToCrtArea(streetsGraph, n, s)) {
+							c.commonServers.add(s.getId());
+						}
+					}
+
+					costs.put(n, c);
 				}
 			}
 
@@ -354,11 +392,11 @@ public class RoutingApplicationServer extends Application{
 	}
 
 	/* These functions should be used when there are multiple servers */
-	public boolean belongToCrtArea( TreeMap<Long, Way> streetsGraph, Pair<Long,Long> n ) {
+	public boolean belongToCrtArea( TreeMap<Long, Way> streetsGraph, Pair<Long,Long> n, GeoServer serve) {
 		Way street = streetsGraph.get(n.getSecond());
 		Node nd = street.getNode(n.getFirst());
 
-		MapPoint mp = serv.getCurrentPos();
+		MapPoint mp = serve.getCurrentPos();
 
 		if (nd == null)
 			return false;

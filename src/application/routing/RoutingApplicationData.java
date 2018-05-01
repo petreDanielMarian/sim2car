@@ -29,7 +29,9 @@ public class RoutingApplicationData implements Serializable {
 	public double avgspeed = 0;
 	public MapPoint startRoutePoint, endRoutePoint;
 	GeoCarRoute route = null;
-	TreeMap<Pair<Long,Long>, RoutingRoadCost> costs = null;
+	private Pair<Long,Long> p = null;
+	private RoutingRoadCost c = null;
+
 	
 	public RoutingApplicationData(String msg, double congestion, long prevStreet, long nextStreet, long jointId, long timestamp) {
 		
@@ -52,14 +54,6 @@ public class RoutingApplicationData implements Serializable {
 		this.route = route;
 	}
 	
-	public void setRoutingCost(TreeMap<Pair<Long,Long>, RoutingRoadCost> c) {
-		this.costs = c;
-	}
-	
-	public TreeMap<Pair<Long,Long>, RoutingRoadCost> getRoutingCost() {
-		return this.costs;
-	}
-	
 	public boolean equals(Object md) {
 		
 		RoutingApplicationData a = (RoutingApplicationData)md;
@@ -68,5 +62,21 @@ public class RoutingApplicationData implements Serializable {
 			   this.nextStreet == a.nextStreet &&
 			   this.jointId == a.jointId && 
 			   this.msg.compareTo(a.msg) == 0;	
+	}
+
+	public Pair<Long,Long> getP() {
+		return p;
+	}
+
+	public void setP(Pair<Long,Long> p) {
+		this.p = p;
+	}
+
+	public RoutingRoadCost getC() {
+		return c;
+	}
+
+	public void setC(RoutingRoadCost c) {
+		this.c = c;
 	}
 }

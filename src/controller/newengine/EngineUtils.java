@@ -217,9 +217,7 @@ public final class EngineUtils {
 		viewer.addServers(serversList);
 		System.out.println(servers.size() + " " + count);
 		computeServerNeighbors(servers);
-		
-		for (Map.Entry<Long, GeoServer> entry1 : servers.entrySet())
-			System.out.println(entry1.getValue().neighServers);
+
 		return servers;
 	}
 	
@@ -238,7 +236,7 @@ public final class EngineUtils {
 		}
 	}
 	
-	private static void addApplicationToServer(GeoServer s) {
+	public static void addApplicationToServer(GeoServer s) {
 		s.addNetworkInterface(new NetworkWiFi(s));
 		
 		/* Create each application which is defined */
@@ -294,7 +292,6 @@ public final class EngineUtils {
 				if (control) {
 					count++;
 					s.setId(count);
-					addApplicationToServer(s);
 					servers.add(s);
 					serversMap.put(s.getId(), s);
 				}
