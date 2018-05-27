@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +29,6 @@ import model.GeoCar;
 import model.GeoCarRoute;
 import model.GeoServer;
 import model.MapPoint;
-import model.PeanoKey;
 import model.PixelLocation;
 import model.OSMgraph.Node;
 import model.OSMgraph.Way;
@@ -47,6 +45,11 @@ import controller.network.NetworkType;
 import controller.network.NetworkUtils;
 import controller.network.NetworkWiFi;
 
+/**
+ * Class used to read the servers and the cars from files
+ * @author Alex
+ *
+ */
 public final class EngineUtils {
 	
     /** Logger used by this class */
@@ -213,14 +216,17 @@ public final class EngineUtils {
 			}
 		}
 		
+		/* Add other servers to the map */
 		computeServersPositions(serversList, servers);
 		viewer.addServers(serversList);
 		System.out.println(servers.size() + " " + count);
+		/* Compute the neighbor servers of each server */
 		computeServerNeighbors(servers);
 
 		return servers;
 	}
 	
+	/* Finds the neighbors of all servers */
 	public static void computeServerNeighbors(TreeMap<Long, GeoServer> serversMap) {
 		for (Map.Entry<Long, GeoServer> entry1 : serversMap.entrySet()) {
 			for (Map.Entry<Long, GeoServer> entry2 : serversMap.entrySet()) {
@@ -257,7 +263,7 @@ public final class EngineUtils {
 		}
 	}
 	
-	
+	/* Computes the positions of the servers on the map */
 	private static void computeServersPositions(ArrayList<GeoServer> servers, TreeMap<Long, GeoServer> serversMap) {
 		Set<Entry<Long,Way>> ways = MobilityEngine.getInstance().streetsGraph.entrySet();
 		

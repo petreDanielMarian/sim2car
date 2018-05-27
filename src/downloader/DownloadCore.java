@@ -22,6 +22,13 @@ import com.dropbox.core.v2.files.FileMetadata;
 
 import com.dropbox.core.v2.users.FullAccount;
 
+/**
+ * This class implements the methods used for downloading the traces
+ * either from mobiway or dropbox.
+ * It also offers the unzip mechanism.
+ * @author Alex
+ *
+ */
 public class DownloadCore {
 	List<String> fileList;
 	//Default download mode Dropbox

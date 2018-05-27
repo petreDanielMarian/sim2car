@@ -19,7 +19,8 @@ public class ServerView {
 		this.map = map;
 		activateLocationServer();
 	}
-
+	
+	/* The 0.05 represents the distMax which is the radius of the circle of the server */
 	public void activateLocationServer() {
 		synchronized (servers) {
 			for (GeoServer sv : servers) {
@@ -30,7 +31,8 @@ public class ServerView {
 			}
 		}
 	}
-
+	
+	/* The 0.05 represents the distMax which is the radius of the circle of the server */
 	public void initLocationServer(ArrayList<GeoServer> sers) {
 		synchronized (servers) {
 			servers = new ArrayList<GeoServer>(sers);

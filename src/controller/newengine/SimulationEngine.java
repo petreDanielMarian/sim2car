@@ -8,9 +8,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.TreeMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import application.ApplicationType;
@@ -29,10 +27,15 @@ import model.threadpool.tasks.CarMove;
 import model.threadpool.tasks.CarPrepareMove;
 import model.threadpool.tasks.ServerApplicationsRun;
 import controller.engine.EngineInterface;
-import controller.network.NetworkInterface;
 import controller.network.NetworkType;
-import controller.network.NetworkUtils;
 
+/**
+ * Class used to represent the brain of the simulator.
+ * It reads the data for cars and servers applies the designated applications to be run on them.
+ * Runs the simulation steps for each time frame (see the Runnable hidden object)
+ * @author Alex
+ *
+ */
 public class SimulationEngine implements EngineInterface {
 	
 	private final Logger logger = Logger.getLogger(SimulationEngine.class.getName());

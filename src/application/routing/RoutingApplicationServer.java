@@ -29,6 +29,13 @@ import model.mobility.MobilityEngine;
 import model.network.Message;
 import model.network.MessageType;
 
+/**
+ * This class is used to represent the server functionality
+ * It receives messages from the car and other servers
+ * Updates it's zone map with costs and responds to new route requests
+ * @author Alex
+ *
+ */
 public class RoutingApplicationServer extends Application{
 
 	private final static Logger logger = Logger.getLogger(RoutingApplicationServer.class.getName());
@@ -103,6 +110,7 @@ public class RoutingApplicationServer extends Application{
 		return false;
 	}
 
+	/* When it runs the server only send the messages it has in queue or the regular zone updates */
 	@Override
 	public String run() {
 		NetworkInterface net = serv.getNetworkInterface(NetworkType.Net_WiFi);
@@ -120,32 +128,57 @@ public class RoutingApplicationServer extends Application{
 		return "";
 	}
 
-	long base = 500L;
-	/* Send message with updated road cost to server */
+	long basePar = 500L;
+	long baseImpar = 400L;
+	/* Sends the information regarding road costs to all the neighbor servers
+	 * The streets are only those of interest for the neighbor so not all streets from a server zone are send to
+	 * it's neighbors*/
 	private void sendWayCosts() {
-		if (SimulationEngine.getInstance().getSimulationTime() == base) {
-			base += 500;
-			for (Long neighId : serv.neighServers) {
-				for (Map.Entry<Long, TreeMap<Pair<Long,Long>,RoutingRoadCost>> entry : areaCostsGraph.entrySet()) {
-					Long prevStreet = entry.getKey();
-					for (Map.Entry<Pair<Long,Long>,RoutingRoadCost> entry2 : entry.getValue().entrySet()) {
-						if (entry2.getValue().commonServers.contains(neighId)) {
-							Message m = new Message(serv.getId(), neighId, null, MessageType.SERVER_UPDATE, ApplicationType.ROUTING_APP);
-							RoutingApplicationData data = new RoutingApplicationData( "Road Info from: " + serv.getId(),
-									0, prevStreet, -1, -1,
-									SimulationEngine.getInstance().getSimulationTime());
-							data.setC(entry2.getValue());
-							data.setP(entry2.getKey());
-							m.setPayload(data);
-							this.serv.getNetworkInterface(NetworkType.Net_WiFi).putMessage(m);
+		if (this.serv.getId() % 2 == 0) {
+			if (SimulationEngine.getInstance().getSimulationTime() == basePar) {
+				basePar += 500;
+				for (Long neighId : serv.neighServers) {
+					for (Map.Entry<Long, TreeMap<Pair<Long,Long>,RoutingRoadCost>> entry : areaCostsGraph.entrySet()) {
+						Long prevStreet = entry.getKey();
+						for (Map.Entry<Pair<Long,Long>,RoutingRoadCost> entry2 : entry.getValue().entrySet()) {
+							if (entry2.getValue().commonServers.contains(neighId)) {
+								Message m = new Message(serv.getId(), neighId, null, MessageType.SERVER_UPDATE, ApplicationType.ROUTING_APP);
+								RoutingApplicationData data = new RoutingApplicationData( "Road Info from: " + serv.getId(),
+										0, prevStreet, -1, -1,
+										SimulationEngine.getInstance().getSimulationTime());
+								data.setC(entry2.getValue());
+								data.setP(entry2.getKey());
+								m.setPayload(data);
+								this.serv.getNetworkInterface(NetworkType.Net_WiFi).putMessage(m);
+							}
 						}
 					}
 				}
-
-
+			}
+		} else {
+			if (SimulationEngine.getInstance().getSimulationTime() == baseImpar) {
+				baseImpar += 400;
+				for (Long neighId : serv.neighServers) {
+					for (Map.Entry<Long, TreeMap<Pair<Long,Long>,RoutingRoadCost>> entry : areaCostsGraph.entrySet()) {
+						Long prevStreet = entry.getKey();
+						for (Map.Entry<Pair<Long,Long>,RoutingRoadCost> entry2 : entry.getValue().entrySet()) {
+							if (entry2.getValue().commonServers.contains(neighId)) {
+								Message m = new Message(serv.getId(), neighId, null, MessageType.SERVER_UPDATE, ApplicationType.ROUTING_APP);
+								RoutingApplicationData data = new RoutingApplicationData( "Road Info from: " + serv.getId(),
+										0, prevStreet, -1, -1,
+										SimulationEngine.getInstance().getSimulationTime());
+								data.setC(entry2.getValue());
+								data.setP(entry2.getKey());
+								m.setPayload(data);
+								this.serv.getNetworkInterface(NetworkType.Net_WiFi).putMessage(m);
+							}
+						}
+					}
+				}
 			}
 		}
 	}
+	
 	@Override
 	public String stop(){
 		return null;
@@ -197,6 +230,8 @@ public class RoutingApplicationServer extends Application{
 
 		//System.out.println("The message received type is " + m.getType() + " from " + m.getSourceId() + "   "+((RoutingApplicationData)m.getPayload()).congestion );
 		NetworkInterface net = serv.getNetworkInterface(NetworkType.Net_WiFi);
+
+		/* Cars always send the costs of the streets but the update route is only computed after simulation 1800 seconds */
 		if( SimulationEngine.getInstance().getSimulationTime() / RoutingApplicationParameters.SamplingInterval < 1 )
 		{
 			msgType = MessageType.NO_ROUTE_UPDATE;
@@ -208,6 +243,7 @@ public class RoutingApplicationServer extends Application{
 
 		reply = new Message(serv.getId(), m.getSourceId(), null, msgType, ApplicationType.ROUTING_APP);
 
+		// Update the costs with the ifo from the car
 		if( m.getType() == MessageType.REQUEST_ROUTE_UPDATE || m.getType() == MessageType.COST_ROAD_UPDATE )
 		{
 
@@ -272,6 +308,7 @@ public class RoutingApplicationServer extends Application{
 			if( RoutingApplicationParameters.state == RoutingApplicationState.COST_COLLECTING )
 				return;
 		}
+		// IF time < 1800 we accept only updates
 		if( msgType == MessageType.NO_ROUTE_UPDATE )
 			return;
 
@@ -287,6 +324,7 @@ public class RoutingApplicationServer extends Application{
 			System.out.println("Car " + destEntity.getId() + "has no server in range");
 			return;
 		}
+
 		//		Long round = stRound.get(data.startRoutePoint.wayId);
 		//		if( round == null )
 		//			return;
@@ -296,6 +334,8 @@ public class RoutingApplicationServer extends Application{
 		//		{
 		//			return;
 		//		}
+
+		/* Compute new route for car*/
 		if( m.getType() == MessageType.REQUEST_ROUTE_UPDATE )
 		{
 			GeoCarRoute newroute = null;
@@ -332,19 +372,23 @@ public class RoutingApplicationServer extends Application{
 
 		}
 	}
+
 	public void setGridSize(long rows, long cols)
 	{
 		this.rows = rows;
 		this.cols = cols;
 	}
+
 	public long getRowsNumber()
 	{
 		return rows;
 	}
+
 	public long getColsNumber()
 	{
 		return cols;
 	}
+
 	public void setServerAreaSizes( double latEdge, double lonEdge )
 	{
 		this.latEdge = latEdge;
@@ -392,6 +436,7 @@ public class RoutingApplicationServer extends Application{
 	}
 
 	/* These functions should be used when there are multiple servers */
+	/* Checks if a way is part of the server area */
 	public boolean belongToCrtArea( TreeMap<Long, Way> streetsGraph, Pair<Long,Long> n, GeoServer serve) {
 		Way street = streetsGraph.get(n.getSecond());
 		Node nd = street.getNode(n.getFirst());

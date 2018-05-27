@@ -22,11 +22,17 @@ import model.parameters.MapConfig;
 import utils.Pair;
 import utils.TraceParsingTool;
 import utils.tracestool.Utils;
-import utils.tracestool.algorithms.OSMGraph;
 import controller.newengine.EngineUtils;
 import controller.newengine.SimulationEngine;
 
-
+/**
+ * This class is used to manage the movement of the cars on the streets
+ * It manages the speed of the cars their positions and also takes in consideration the drivers
+ * behavior.
+ * Any car related movement should be implemented here such as traffic rules !
+ * @author Alex
+ *
+ */
 public class MobilityEngine {
 
 	private final Logger logger = Logger.getLogger(MobilityEngine.class.getName());

@@ -18,6 +18,12 @@ import controller.network.NetworkInterface;
 import controller.network.NetworkType;
 import controller.newengine.SimulationEngine;
 
+/**
+ * This class represents the main structure of all the simulator components such as
+ * cars and servers.
+ * @author Alex
+ *
+ */
 public class Entity {
 
 	/** The ID of this entity. */
@@ -62,7 +68,8 @@ public class Entity {
 		// TODO EngineSimulation
 		return null;
 	}
-
+	
+	/* Returns all the servers in the simulator */ 
 	public List<GeoServer> getServers() {
 		EngineInterface engine = SimulationEngine.getInstance();
 		if( engine == null )

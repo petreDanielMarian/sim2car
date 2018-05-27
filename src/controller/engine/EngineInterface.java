@@ -7,8 +7,12 @@ import java.util.List;
 import model.GeoCar;
 import model.GeoServer;
 
+/** 
+ * The interface used for implementing the simulators core engine
+ * @author Alex
+ *
+ */
 public interface EngineInterface {
-
 	public void setUp();
 	public void start();
 	public void stopSimulation();

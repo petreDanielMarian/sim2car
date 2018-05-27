@@ -11,7 +11,6 @@ import java.util.logging.Logger;
 import controller.network.NetworkInterface;
 import controller.newengine.SimulationEngine;
 import model.OSMgraph.Node;
-import model.OSMgraph.Way;
 import model.mobility.MobilityEngine;
 import model.parameters.Globals;
 import model.personality.Personality;

@@ -30,22 +30,22 @@ import controller.network.NetworkInterface;
 import controller.network.NetworkType;
 
 public class TileApplicationCar extends Application {
-	
+
 
 	// TODO: Add description
 	@Parameter(names = {"--peerProxToServer"}, arity = 1)
-    public static boolean peerProxToServer = false;
-	
+	public static boolean peerProxToServer = false;
+
 	// TODO: Add description
 	@Parameter(names = {"--peersCommunication"}, arity = 1)
-    public static boolean peersComm = true;
-	
+	public static boolean peersComm = true;
+
 	@Parameter(names = {"--wifiOn"}, description = "WiFi communication state on/off", arity = 1)
-    public static boolean wifiOn = true;
-	
+	public static boolean wifiOn = true;
+
 	@Parameter(names = {"--memorySize"}, description = "Car memory size")
-    public static int memorySize = 5120;
-    
+	public static int memorySize = 5120;
+
 	/* The cost for the search over a network */
 	public final double searchCost = 50;
 	public final double routeReqCost = 16.0 / 1024;
@@ -128,8 +128,8 @@ public class TileApplicationCar extends Application {
 		 */
 		if (!wasOccupied && currentPos.occupied) {
 			// System.out.println("Detecting route  " + car.getId());
-			
-//			ArrayList<MapPoint> pointsInAdvance = car.getPointsInAdvance();
+
+			//			ArrayList<MapPoint> pointsInAdvance = car.getPointsInAdvance();
 			ArrayList<MapPoint> pointsInAdvance = new ArrayList<MapPoint>();
 			isActive = true;
 			Point lastTileid = currentPos.tile;
@@ -147,7 +147,7 @@ public class TileApplicationCar extends Application {
 							if (pt.tile.x == auxId.x && pt.tile.y == auxId.y)
 								break;
 						}
-						 /* If the tile ID is on the require list it isn't added on the list. */
+						/* If the tile ID is on the require list it isn't added on the list. */
 						if (j == requiredTilesIds.size()) {
 							requiredTilesIds.add(pt.tile);
 						}
@@ -376,7 +376,7 @@ public class TileApplicationCar extends Application {
 		data[0] = type;
 		Message m;
 		ArrayList<Point> reqTilesids = getUnavailableTile();
-		
+
 		/*
 		 * This is an active peer which has a route established.
 		 * Request the needed tiles
@@ -608,9 +608,9 @@ public class TileApplicationCar extends Application {
 		return String.format(
 				"%5s %15f %15f %15f %15f %15d %15d %15d %15d %20f %20f", "Taxi"
 						+ car.getId(), (wifiTrafficPeersSend),
-				(wifiTrafficServerSend), (wifiTrafficServerSend),
-				(wifiTrafficServerRecev), localStore.size(), toPeers,
-				fromPeers, fromServers, memory, usedMemory);
+						(wifiTrafficServerSend), (wifiTrafficServerSend),
+						(wifiTrafficServerRecev), localStore.size(), toPeers,
+						fromPeers, fromServers, memory, usedMemory);
 	}
 
 	public Object getData() {

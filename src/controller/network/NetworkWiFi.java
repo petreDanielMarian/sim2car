@@ -69,7 +69,7 @@ public class NetworkWiFi extends NetworkInterface {
 		return serversInRange;
 	}
 	
-
+	/* Discover the closest server to the entity */
 	@Override
 	public NetworkInterface discoverClosestServer() {
 		Entity owner = getOwner();

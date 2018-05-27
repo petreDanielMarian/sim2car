@@ -14,7 +14,6 @@ import java.util.logging.Logger;
 
 import controller.engine.EngineInterface;
 import controller.engine.EngineSimulation;
-import controller.newengine.SimulationEngine;
 import model.Entity;
 import model.GeoCar;
 import model.network.Message;
