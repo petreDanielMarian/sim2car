@@ -162,8 +162,9 @@ public class SimulationEngine implements EngineInterface {
 					viewer.updateCarPositions();
 					viewer.setTime("" + time);
 					
-					if( (time + 2)% RoutingApplicationParameters.SamplingInterval == 0 )
+					if ((time + 2)% RoutingApplicationParameters.SamplingInterval == 0)
 					{
+						System.err.println("WRITTING ROUTES TIME TO FILES!");
 						for (Entity e : entities.values()) {
 							if (e instanceof GeoCar && ((GeoCar) e).getActive() == 1) {
 								((GeoCar) e).printRouteData(mapConfig.getCity() + "/" + time + "_routes_time_" + ((GeoCar) e).getId() + ".txt");

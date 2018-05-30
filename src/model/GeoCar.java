@@ -1,5 +1,6 @@
 package model;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.Iterator;
@@ -296,7 +297,7 @@ public class GeoCar extends Entity {
 			long timei = SimulationEngine.getInstance().getSimulationTime() - routeStartTime;
 			if(timei > 1 )
 			{
-				routesTime.append((routes_idx++) + " " + timei +"\n" );
+				routesTime.append((routes_idx++) + " " + timei + System.lineSeparator() );
 			}
 			return null;
 		}
@@ -376,7 +377,7 @@ public class GeoCar extends Entity {
 			long timei = SimulationEngine.getInstance().getSimulationTime() - routeStartTime;
 			if(timei > 1 )
 			{
-				routesTime.append((routes_idx++) + " " + timei +"\n" );
+				routesTime.append((routes_idx++) + " " + timei + System.lineSeparator() );
 			}
 			return null;
 		}
@@ -410,12 +411,13 @@ public class GeoCar extends Entity {
 			hasMoved.set(false);
 		} catch (RuntimeException e) {
 			/** Something was wrong with the route, so it's better to start a new one.*/
+
 			setBeginNewRoute(true);
 			long timei = SimulationEngine.getInstance().getSimulationTime() - routeStartTime;
-			if(timei > 1 )
-			{
-				routesTime.append((routes_idx++) + " " + timei +"\n");
-			}	
+//			if(timei > 1 )
+//			{	System.out.println("cacat");
+//				routesTime.append((routes_idx++) + " " + timei + System.lineSeparator());
+//			}	
 			initRoute();
 			return;
 		}
@@ -550,8 +552,9 @@ public class GeoCar extends Entity {
 	
 	public void printRouteData(String filename) {
 		try {
+			String city = SimulationEngine.getInstance().getMapConfig().getCity();
+			new File(city).mkdir();
 			PrintWriter pw;
-			/** TODO: to be done automatically **/
 			pw = new PrintWriter(filename);
 			pw.write(this.routesTime.toString());
 			pw.close();

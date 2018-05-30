@@ -325,16 +325,10 @@ public class RoutingApplicationServer extends Application{
 			return;
 		}
 
-		//		Long round = stRound.get(data.startRoutePoint.wayId);
-		//		if( round == null )
-		//			return;
-		//		round = (round + 1) % Long.MAX_VALUE;
-		//		stRound.put(data.startRoutePoint.wayId, round);
-		//		if( round % 2 == 0 )
-		//		{
-		//			return;
-		//		}
-
+//		String x = null;
+//		
+//		if (x == null)
+//			return;
 		/* Compute new route for car*/
 		if( m.getType() == MessageType.REQUEST_ROUTE_UPDATE )
 		{
