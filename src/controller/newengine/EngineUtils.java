@@ -10,11 +10,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.Vector;
@@ -23,12 +21,13 @@ import java.util.logging.Logger;
 import application.Application;
 import application.ApplicationType;
 import application.ApplicationUtils;
-import application.routing.RoutingApplicationParameters;
 import application.routing.RoutingApplicationServer;
 import model.GeoCar;
 import model.GeoCarRoute;
 import model.GeoServer;
+import model.GeoTrafficLightMaster;
 import model.MapPoint;
+import model.PeanoKey;
 import model.PixelLocation;
 import model.OSMgraph.Node;
 import model.OSMgraph.Way;
@@ -47,7 +46,6 @@ import controller.network.NetworkWiFi;
 
 /**
  * Class used to read the servers and the cars from files
- * @author Alex
  *
  */
 public final class EngineUtils {
@@ -57,11 +55,11 @@ public final class EngineUtils {
     
 	/* for traffic entities id */
 	static int count = 0;
-	
+		
 	/* Server info */
 	static double latEdge = 0d, lonEdge = 0d;
 	static long rows = 0, cols = 0;
-
+	
 	private EngineUtils() {}
 
 	/**
@@ -226,6 +224,7 @@ public final class EngineUtils {
 		return servers;
 	}
 	
+	
 	/* Finds the neighbors of all servers */
 	public static void computeServerNeighbors(TreeMap<Long, GeoServer> serversMap) {
 		for (Map.Entry<Long, GeoServer> entry1 : serversMap.entrySet()) {
@@ -307,6 +306,93 @@ public final class EngineUtils {
 		
 		System.out.println(servers.size());
 	}
+	
+	/**
+	 * Return a list of cars from car traces.
+	 * 
+	 * @param carListFilename	the file with the list of car IDs
+	 * @param viewer			the GUI viewer
+	 * @param mobilityEngine	the traffic engine to which we must add
+	 * 								the cars we read for this simulation
+	 */
+	static TreeMap<Long,GeoTrafficLightMaster> getTrafficLights(String trafficLightListFilename, Viewer viewer, MobilityEngine mobilityEngine) {
+		FileInputStream fstream = null;
+		TreeMap<Long,GeoTrafficLightMaster> trafficLights = new TreeMap<Long,GeoTrafficLightMaster>();
+
+		try {
+			fstream = new FileInputStream(trafficLightListFilename);
+			BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
+			String line;
+			int c = 0;
+
+			/* read info data */
+			br.readLine();
+			/* Read data about traffic lights */
+			while ((line = br.readLine()) != null) {
+				c++;
+				logger.info(" We opened " + count + ". " + line);
+				
+				StringTokenizer st = new StringTokenizer(line, " ", false);
+				Long nodeId = Long.parseLong(st.nextToken()); /* node id */
+				Long wayId = Long.parseLong(st.nextToken()); /* way id" */
+				
+				Node node = mobilityEngine.streetsGraph.get(wayId).getNode(nodeId);
+				node.setWayId(wayId);
+				
+				Way way = mobilityEngine.getWay(wayId);
+				int noWaysNeigh = 0;
+				if (way.neighs.containsKey(node.id)) {
+					noWaysNeigh = way.neighs.get(node.id).size();
+				}
+				count++;
+				GeoTrafficLightMaster trafficLight = new GeoTrafficLightMaster(count, node, noWaysNeigh);
+				
+				MapPoint mapPoint = MapPoint.getMapPoint(node);
+				mapPoint.segmentIndex = mobilityEngine.getSegmentNumber(node);
+				
+				if (mapPoint.segmentIndex < mobilityEngine.getWay(wayId).nodes.size() - 1)
+					mapPoint.cellIndex = mobilityEngine.getCellIndex(node, mobilityEngine.streetsGraph.get(wayId).getNodeByIndex(mapPoint.segmentIndex + 1), mapPoint);
+				else
+					mapPoint.cellIndex = mobilityEngine.getCellIndex(mobilityEngine.streetsGraph.get(wayId).getNodeByIndex(mapPoint.segmentIndex - 1), node, mapPoint);
+				trafficLight.setCurrentPos(mapPoint);
+				trafficLights.put(trafficLight.getId(), trafficLight);
+				
+				
+				/* Create each network interface which is defined */
+				for( NetworkType type : Globals.activeNetInterfaces )
+				{
+					NetworkInterface netInterface = NetworkUtils.activateNetworkInterface(type, trafficLight);
+					trafficLight.addNetworkInterface(netInterface);
+				}
+				
+				/* Create each application which is defined for traffic light*/
+				ApplicationType type = ApplicationType.TRAFFIC_LIGHT_CONTROL_APP;
+				Application app = ApplicationUtils.activateApplicationTrafficLight(type, trafficLight);
+				if( app == null )
+				{
+					logger.info(" Failed to create application with type " + type);
+					continue;
+				}
+				trafficLight.addApplication( app );
+				
+				viewer.addTrafficLightViews(trafficLight);
+
+
+			}
+			br.close();
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				fstream.close();
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
+		}
+		return trafficLights;
+	}
+	
+	
 	/**
 	 * Load the street graph in memory.
 	 * 

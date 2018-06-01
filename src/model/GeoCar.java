@@ -1,6 +1,7 @@
 package model;
 
 import java.io.File;
+import java.awt.Color;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.Iterator;
@@ -10,15 +11,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import controller.network.NetworkInterface;
+import controller.network.NetworkType;
+import controller.network.NetworkWiFi;
 import controller.newengine.SimulationEngine;
 import model.OSMgraph.Node;
+import model.OSMgraph.Way;
 import model.mobility.MobilityEngine;
+import model.network.Message;
+import model.network.MessageType;
 import model.parameters.Globals;
 import model.personality.Personality;
 import model.personality.RegularPersonality;
 import utils.Pair;
 import utils.TraceParsingTool;
 import application.Application;
+import application.ApplicationType;
+import application.routing.RoutingApplicationData;
+import application.trafficLight.ApplicationTrafficLightControlData;
 
 public class GeoCar extends Entity {
 	
@@ -56,6 +65,8 @@ public class GeoCar extends Entity {
 	/** Used to count the number of times the car has stayed still */
 	private int still = 0;
 	
+	private boolean stoppedAtTrafficLight = false;
+
 	/**
 	 * List of nodes between current position and next position.
 	 * The list is sorted from the current position towards next position.
@@ -65,7 +76,7 @@ public class GeoCar extends Entity {
 	private boolean beginNewRoute;
 
 	/** The car in front of this car. Is updated at every iteration */
-	private Pair<GeoCar, Double> carAhead = null;
+	private Pair<Entity, Double> elementAhead = null;
 	
 	/** Route length in time information */
 	StringBuffer routesTime = new StringBuffer();
@@ -214,43 +225,109 @@ public class GeoCar extends Entity {
 		double accel = driver.getAccelerationMaximumBrake();
 		return speed + accel * (double) Globals.timePeriod;
 	}
+
+	/** Update the speed of the car given the the car ahead. */
+	public void updateSpeedCarAhead() {
+		GeoCar carInFront = (GeoCar) elementAhead.getFirst();
+		Double distance = elementAhead.getSecond();
+		
+		if (carInFront == null) {
+			speed = computeSpeedFreeDriving();
+		} else {
+			if (distance >= this.driver.getInfluenceDistance(speed)) {
+				speed = computeSpeedFreeDriving();
+			} else if (distance < driver.getInfluenceDistance(speed) &&
+					   distance >= driver.getSafetyDistance(speed)) {
+				/* In between the two distances - the action depends on speed */
+				if (carInFront.speed > this.speed) {
+					speed = computeSpeedFreeDriving();
+				} else if (carInFront.speed == this.speed) {
+					if (carInFront.speed == 0.0) {
+						/*
+						 * practically stopped behind another stopped vehicle;
+						 * it's safe to get a little closer
+						 */
+						speed = computeSpeedFreeDriving();
+					}
+					/* this car follows the other one; no change of speed */
+				} else {
+					/* should brake; */
+					speed = computeSpeedApproaching(carInFront.speed, distance);
+				}
+			} else if (distance < driver.getSafetyDistance(speed)) {
+				/* should brake */
+				if (carInFront.speed < speed) {
+					speed = computeSpeedMaximumBrake();
+				}
+			}
+		}		
+	}
+
+	/** Update the speed of the car given the traffic light ahead. */
+	public void updateSpeedTrafficLightAhead() {
+		GeoTrafficLightMaster trafficLightInFront = (GeoTrafficLightMaster) elementAhead.getFirst();
+		Double distance = elementAhead.getSecond();
+		
+		if (trafficLightInFront == null) {
+			speed = computeSpeedFreeDriving();
+		} else {
+			
+			/* Compute way id and direction for the given car */
+			long wayId = this.getCurrentPos().wayId;
+			int direction = - this.getCurrentPos().direction;
+			
+			/* The car is close to the traffic light and the traffic light is red -> stop */
+			if (distance < 25  && trafficLightInFront.getTrafficLightColor(wayId, direction) == Color.red && !isStoppedAtTrafficLight()) {
+				//System.out.println("stop " + this.getCurrentPos());
+				speed = 0;
+				setStopppedAtTrafficLight(true);
+				sendDataToTrafficLight(trafficLightInFront, wayId, direction);
+			} 
+			 else {
+				 
+				/* The car is stopped at the traffic light and the traffic light is green -> start */
+				if (trafficLightInFront.getTrafficLightColor(wayId, direction) == Color.green && isStoppedAtTrafficLight()) {
+					//System.out.println("restart" + this.getCurrentPos());
+					setStopppedAtTrafficLight(false);
+				}
+				
+				/* Compute free driving if the car is moving ant the traffic light is green */
+				speed = computeSpeedFreeDriving();
+			}
+		}
+	}
+	
+	public void sendDataToTrafficLight(GeoTrafficLightMaster trafficLightMaster,
+			Long wayId, int direction) {
+		NetworkInterface net = this.getNetworkInterface(NetworkType.Net_WiFi);
+		NetworkInterface discoveredTrafficLightMaster = ((NetworkWiFi)net).discoverTrafficLight(trafficLightMaster);
+		
+		Message msg = new Message(this.getId(), discoveredTrafficLightMaster.getOwner().getId(), null, 
+				MessageType.ADD_WAITING_QUEUE, ApplicationType.TRAFFIC_LIGHT_CONTROL_APP);
+		ApplicationTrafficLightControlData data = new ApplicationTrafficLightControlData();
+	
+		data.setCarId(this.getId());
+		data.setWayId(wayId);
+		data.setDirection(direction);
+		
+		//System.out.println("Car " + this.getId() + " sends data to traffic light " + trafficLightMaster.getId());
+		msg.setPayload(data);
+		net.putMessage(msg);
+	
+	}
+
 	
 	/** Update the speed of the car given the intersection or the car ahead. */
 	public void updateSpeed() {
-		if (carAhead != null) {
-			GeoCar carInFront = carAhead.getFirst();
-			Double distance = carAhead.getSecond();
-			
-			if (carInFront == null) {
-				speed = computeSpeedFreeDriving();
-			} else {
-				if (distance >= this.driver.getInfluenceDistance(speed)) {
-					speed = computeSpeedFreeDriving();
-				} else if (distance < driver.getInfluenceDistance(speed) &&
-						   distance >= driver.getSafetyDistance(speed)) {
-					/* In between the two distances - the action depends on speed */
-					if (carInFront.speed > this.speed) {
-						speed = computeSpeedFreeDriving();
-					} else if (carInFront.speed == this.speed) {
-						if (carInFront.speed == 0.0) {
-							/*
-							 * practically stopped behind another stopped vehicle;
-							 * it's safe to get a little closer
-							 */
-							speed = computeSpeedFreeDriving();
-						}
-						/* this car follows the other one; no change of speed */
-					} else {
-						/* should brake; */
-						speed = computeSpeedApproaching(carInFront.speed, distance);
-					}
-				} else if (distance < driver.getSafetyDistance(speed)) {
-					/* should brake */
-					if (carInFront.speed < speed) {
-						speed = computeSpeedMaximumBrake();
-					}
-				}
-			}	
+		if (elementAhead != null) {
+			/* car */
+			if (elementAhead.getFirst() instanceof GeoCar) {
+				updateSpeedCarAhead();
+			}
+			else {
+				/* traffic light */
+				updateSpeedTrafficLightAhead();
+			}
 		}
 
 		/**
@@ -292,6 +369,11 @@ public class GeoCar extends Entity {
 		double speed = this.speed;
 		
 		double distance = 0.0;
+		
+		if (stoppedAtTrafficLight) {
+			hasMoved.set(true);
+			return this.getCurrentPos();
+		}
 
 		if (this.getCurrentPos().equals(route.getEndPoint())) {
 			long timei = SimulationEngine.getInstance().getSimulationTime() - routeStartTime;
@@ -394,13 +476,19 @@ public class GeoCar extends Entity {
 			 * Hasn't started driving on a route, if it fails to add point to street
 			 * give up and try at the next tick.
 			 */
+			if (stoppedAtTrafficLight) {
+				updateSpeed();
+				if (stoppedAtTrafficLight)
+					return;
+			}
 			if (this.getCurrentPos() == null) {
-				setBeginNewRoute(true);
-				initRoute();
+					//System.out.println("begin new route");
+					setBeginNewRoute(true);
+					initRoute();
 				return;
 			}
 			
-			carAhead = mobility.getCarAhead(this, driver.getInfluenceDistance(speed));
+			elementAhead = mobility.getElementAhead(this, driver.getInfluenceDistance(speed));
 			updateSpeed();
 //			System.out.println("speed: " + speed);
 //			System.out.println("way: " + this.getCurrentPos().wayId);
@@ -409,15 +497,14 @@ public class GeoCar extends Entity {
 			this.setBeginNewRoute(false);
 			mobility.queueNextMove(this.getId(), nextPos);
 			hasMoved.set(false);
+
 		} catch (RuntimeException e) {
 			/** Something was wrong with the route, so it's better to start a new one.*/
-
 			setBeginNewRoute(true);
 			long timei = SimulationEngine.getInstance().getSimulationTime() - routeStartTime;
 //			if(timei > 1 )
-//			{	System.out.println("cacat");
 //				routesTime.append((routes_idx++) + " " + timei + System.lineSeparator());
-//			}	
+//			}		
 			initRoute();
 			return;
 		}
@@ -425,18 +512,23 @@ public class GeoCar extends Entity {
 	
 	public void move() {
 		try {
-			if (hasMoved.compareAndSet(false, true) && this.active == 1) {
-				if (carAhead != null && carAhead.getFirst() != null)
-					carAhead.getFirst().move();
+			if (isStoppedAtTrafficLight())
+				return;
+			
+			if (!stoppedAtTrafficLight && hasMoved.compareAndSet(false, true) && this.active == 1) {
+				if (elementAhead != null && elementAhead.getFirst() != null && elementAhead.getFirst() instanceof GeoCar) {
+					GeoCar carAhead = (GeoCar) elementAhead.getFirst();
+					carAhead.move();
+				}
 				
-				GeoCar car = carAhead.getFirst();
-				List<GeoCar> carsOnRoute = mobility.getCarsOnRoute(getCurrentPos(), getNextPos(), nodesToMoveOver);
-				if (carsOnRoute.contains(car)) {
+				Entity element = elementAhead.getFirst();
+				List<Entity> entitiesOnRoute = mobility.getCarsOnRoute(getCurrentPos(), getNextPos(), nodesToMoveOver);
+				if (entitiesOnRoute.contains(element)) {
 					Node prevNode = null;
 					if (nodesToMoveOver.size() > 0)
 						prevNode = nodesToMoveOver.get(nodesToMoveOver.size() - 1);
 					mobility.removeQueuedCar(this.nextPos, this.getId());
-					nextPos = mobility.getPointBefore(car.getCurrentPos(), prevNode);
+					nextPos = mobility.getPointBefore(element.getCurrentPos(), prevNode);
 					mobility.queueNextMove(this.getId(), this.nextPos);
 				}
 				
@@ -449,14 +541,15 @@ public class GeoCar extends Entity {
 				MapPoint newPosition = mobility.moveCarInCell(this, this.getNextPos(), between, next);
 				
 				if (newPosition == null) {
-//					System.out.println("here");
+					System.out.println("here");
 					resetRoute();
 					return;
 				}
 				if (newPosition == this.getCurrentPos()) {
-					if (still > 10) {
+					if (still > 100) {
 						/* we've stayed too much time in the same place */
 						resetRoute();
+						System.out.println("Car " + this.getId() + " has spent too much time in the same place. Reset route.");
 						logger.warning("Car " + this.getId() + " has spent too much time in the same place. Reset route.");
 						return;
 					} else
@@ -555,6 +648,7 @@ public class GeoCar extends Entity {
 			String city = SimulationEngine.getInstance().getMapConfig().getCity();
 			new File(city).mkdir();
 			PrintWriter pw;
+
 			pw = new PrintWriter(filename);
 			pw.write(this.routesTime.toString());
 			pw.close();
@@ -591,6 +685,7 @@ public class GeoCar extends Entity {
 				this.setActive(0);
 //				printRouteData();
 				logger.info("Car " + this.getId() + " has become inactive.");
+				System.out.println("Car " + this.getId() + " has become inactive.");
 				return;
 			}
 	
@@ -661,5 +756,13 @@ public class GeoCar extends Entity {
 	public void start() {
 		setBeginNewRoute(false);
 		initRoute();
+	}
+	
+	public boolean isStoppedAtTrafficLight() {
+		return stoppedAtTrafficLight;
+	}
+
+	public void setStopppedAtTrafficLight(boolean stoppedAtTrafficLight) {
+		this.stoppedAtTrafficLight = stoppedAtTrafficLight;
 	}
 }

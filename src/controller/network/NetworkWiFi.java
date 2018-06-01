@@ -5,12 +5,13 @@ import java.util.ArrayList;
 import model.Entity;
 import model.GeoCar;
 import model.GeoServer;
+import model.GeoTrafficLightMaster;
 import model.network.Message;
 import utils.tracestool.Utils;
 
 import com.beust.jcommander.Parameter;
-
 import application.routing.RoutingApplicationParameters;
+
 import controller.engine.EngineInterface;
 import controller.engine.EngineSimulation;
 import controller.newengine.SimulationEngine;
@@ -95,6 +96,20 @@ public class NetworkWiFi extends NetworkInterface {
 		}
 		
 		return serverInRange.getNetworkInterface(this.getType());
+	}
+	
+	public NetworkInterface discoverTrafficLight(GeoTrafficLightMaster trafficLightMaster) {
+		Entity owner = getOwner();
+		long dist = 0;
+
+		dist = owner.getCurrentPos().distanceTo(trafficLightMaster.getCurrentPos());
+		if (dist < NetworkWiFi.maxWifiRange) {
+			NetworkInterface net = trafficLightMaster.getNetworkInterface(this.getType());
+			if (net != null) {
+				return net;
+			}
+		}
+		return null;
 	}
 	
 	 public Message getNextInputMessage() {

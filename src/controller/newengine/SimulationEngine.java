@@ -17,6 +17,7 @@ import application.routing.RoutingApplicationParameters;
 import model.Entity;
 import model.GeoCar;
 import model.GeoServer;
+import model.GeoTrafficLightMaster;
 import model.mobility.MobilityEngine;
 import model.parameters.Globals;
 import model.parameters.MapConfig;
@@ -26,16 +27,18 @@ import model.threadpool.tasks.CarApplicationsRun;
 import model.threadpool.tasks.CarMove;
 import model.threadpool.tasks.CarPrepareMove;
 import model.threadpool.tasks.ServerApplicationsRun;
+import model.threadpool.tasks.TrafficLightApplicationsRun;
+import model.threadpool.tasks.TrafficLightChangeColor;
 import controller.engine.EngineInterface;
 import controller.network.NetworkType;
 
-/**
- * Class used to represent the brain of the simulator.
- * It reads the data for cars and servers applies the designated applications to be run on them.
- * Runs the simulation steps for each time frame (see the Runnable hidden object)
- * @author Alex
- *
- */
+	/**
+	 * Class used to represent the brain of the simulator.
+	 * It reads the data for cars and servers applies the designated applications to be run on them.
+	 * Runs the simulation steps for each time frame (see the Runnable hidden object)
+	 * @author Alex
+	 *
+	 */
 public class SimulationEngine implements EngineInterface {
 	
 	private final Logger logger = Logger.getLogger(SimulationEngine.class.getName());
@@ -99,12 +102,13 @@ public class SimulationEngine implements EngineInterface {
 		
 		entities.putAll(EngineUtils.getCars(getMapConfig().getTracesListFilename(), viewer, mobilityEngine) );
 		entities.putAll(EngineUtils.getServers(getMapConfig().getAccessPointsFilename(), viewer, mobilityEngine) );
-		
+		entities.putAll(EngineUtils.getTrafficLights(getMapConfig().getTrafficLightsFilename(), viewer, mobilityEngine));
+			
 		for (Entity e : entities.values()) {
 			if (e instanceof GeoServer) {
 				EngineUtils.addApplicationToServer((GeoServer) e);
 			}
-		}
+		}	
 		
 		simulation = new Runnable() {
 			
@@ -120,13 +124,19 @@ public class SimulationEngine implements EngineInterface {
 							car.start();
 						}
 					}
+					if (e instanceof GeoTrafficLightMaster) {
+						GeoTrafficLightMaster trafficLight = (GeoTrafficLightMaster) e;
+						if (trafficLight.getActive() == 1) {
+							trafficLight.start();
+						}
+					}
 				}
 				
 				viewer.updateCarPositions();
+				viewer.updateTrafficLightsColors();
 				
 				while (run) {
 					time++;
-					
 					for (Entity e : entities.values()) {
 						if (e instanceof GeoServer) {
 							//streetData.append(((GeoCar) e).runApplications());
@@ -135,7 +145,9 @@ public class SimulationEngine implements EngineInterface {
 						if (e instanceof GeoCar && ((GeoCar) e).getActive() == 1) {
 							threadPool.submit(new CarApplicationsRun((GeoCar) e));
 						}
-						
+						if (e instanceof GeoTrafficLightMaster && ((GeoTrafficLightMaster) e).getActive() == 1) {
+							threadPool.submit(new TrafficLightApplicationsRun((GeoTrafficLightMaster) e));
+						}
 					}
 
 					threadPool.waitForThreadPoolProcessing();
@@ -158,11 +170,19 @@ public class SimulationEngine implements EngineInterface {
 						}
 					}
 					threadPool.waitForThreadPoolProcessing();
+					
+					for (Entity e : entities.values()) {
+						if (e instanceof GeoTrafficLightMaster && ((GeoTrafficLightMaster) e).getActive() == 1) {
+							threadPool.submit(new TrafficLightChangeColor((GeoTrafficLightMaster) e));
+						}
+					}
+					threadPool.waitForThreadPoolProcessing();
 
 					viewer.updateCarPositions();
+					viewer.updateTrafficLightsColors();
 					viewer.setTime("" + time);
 					
-					if ((time + 2)% RoutingApplicationParameters.SamplingInterval == 0)
+					if( (time + 2)% RoutingApplicationParameters.SamplingInterval == 0)
 					{
 						System.err.println("WRITTING ROUTES TIME TO FILES!");
 						for (Entity e : entities.values()) {
@@ -181,6 +201,7 @@ public class SimulationEngine implements EngineInterface {
 					}
 					
 					if (activeCars == 0) {
+						System.out.println("active cars 0");
 						run = false;
 					}
 				}
