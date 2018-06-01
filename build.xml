@@ -1,0 +1,61 @@
+<?xml version = "1.0" encoding = "ISO-8859-1"?>
+<project name = "Sim2Car" basedir = "." default = "compile">
+		
+	<property name = "src_dir" value = "./src"/>
+	<property name = "lib" value = "./lib"/>
+	<property name = "build_dir" value = "./bin"/>
+	<property name = "classes_dir" value = "${build_dir}"/>
+		
+	<path id = "project_classpath">
+		<pathelement location = "${build_dir}"/>
+		<pathelement location ="${lib}/JMapViewer_29618.jar"/>
+		<pathelement location ="${lib}/jfreechart-1.0.15.jar"/>
+		<pathelement location ="${lib}/jcommon-1.0.18.jar"/>
+		<pathelement location ="${lib}/jcommander-master.jar"/>
+		<pathelement location ="${lib}/junit-4.12.jar"/>
+	</path>
+	
+	<target name = "clean_build">
+		<delete dir = "${build_dir}"/>
+	</target>
+	
+	
+	<target name = "clean" depends = "clean_build"/>
+	
+	<target name = "compile">
+		<mkdir dir = "${classes_dir}"/>
+		<javac  encoding="UTF-8" debug = "on" srcdir = "${src_dir}" destdir = "${build_dir}" classpathref = "project_classpath">
+		</javac>
+	</target>
+
+	<target name = "runTPB" depends = "compile">
+		<java fork = "true" classname = "utils.tracestool.StartTraceTool" classpathref  = "project_classpath"  >
+		<arg line="-prop src/configurations/tracestool/TPbeijing.properties"/>
+		</java>
+	</target>
+	<target name = "runTPSF" depends = "compile">
+		<java fork = "true" classname = "utils.tracestool.StartTraceTool" classpathref  = "project_classpath"  >
+		<arg line="-prop src/configurations/tracestool/TPsanfrancisco.properties"/>
+		</java>
+	</target>
+	<target name = "runTPR" depends = "compile">
+		<java fork = "true" classname = "utils.tracestool.StartTraceTool" classpathref  = "project_classpath"  >
+		<arg line="-prop src/configurations/tracestool/TProme.properties"/>
+		</java>
+	</target>
+	<target name = "runSF" depends = "compile">
+		<java fork = "true" classname = "Main.Main" classpathref  = "project_classpath" >
+		<arg line="-prop src/configurations/tracestool/sanfrancisco.properties"/>
+		</java>
+	</target>
+    <target name = "runR" depends = "compile">
+		<java fork = "true" classname = "Main.Main" classpathref  = "project_classpath" >
+		<arg line="-prop src/configurations/tracestool/rome.properties" />
+		</java>
+	</target>
+	<target name = "runB" depends = "compile">
+		<java fork = "true" classname = "Main.Main" classpathref  = "project_classpath" >
+		<arg line="-prop src/configurations/tracestool/beijing.properties"/>
+		</java>
+	</target>
+</project>
