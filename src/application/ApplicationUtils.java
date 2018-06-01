@@ -9,8 +9,10 @@ import application.routing.RoutingApplicationServer;
 import application.streetvisits.StreetVisitsApplication;
 import application.tiles.TileApplicationCar;
 import application.tiles.TileApplicationServer;
+import application.trafficLight.ApplicationTrafficLightControl;
 import model.GeoCar;
 import model.GeoServer;
+import model.GeoTrafficLightMaster;
 import model.parameters.Globals;
 
 /**
@@ -35,6 +37,22 @@ public class ApplicationUtils {
 			return EngineSimulation.getInstance() != null ? new TileApplicationCar(car) : null;
 		case STREET_VISITS_APP:
 			return SimulationEngine.getInstance() != null ? new StreetVisitsApplication(car) : null;
+		default:
+			return null;
+		}
+	}
+	
+	/**
+	 * Create the application for current Traffic Light object
+	 * @param type - Application type
+	 * @param trafficLight - Traffic Light object
+	 * @return
+	 */
+	public static Application activateApplicationTrafficLight( ApplicationType type, GeoTrafficLightMaster trafficLight)
+	{
+		switch (type) {
+			case TRAFFIC_LIGHT_CONTROL_APP:
+				return SimulationEngine.getInstance() != null ? new ApplicationTrafficLightControl(trafficLight) : null;
 		default:
 			return null;
 		}

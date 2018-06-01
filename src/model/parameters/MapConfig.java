@@ -12,6 +12,7 @@ public interface MapConfig {
 	String getPartialGraphFilename();
 	String getPartialStreetsFilename();
 	String getStreetsFilename();
+	String getTrafficLightsFilename();
 	String getIndexTableFilename();
 	String getTracesListFilename();
 	String getGeneratedTracesListFilename();

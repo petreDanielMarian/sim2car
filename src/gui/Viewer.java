@@ -9,6 +9,7 @@ import java.util.Vector;
 import javax.swing.SwingUtilities;
 
 import model.GeoCar;
+import model.GeoServer;
 import model.GeoTrafficLightMaster;
 import model.MapPoint;
 import model.OSMgraph.Node;

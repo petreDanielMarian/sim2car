@@ -158,7 +158,7 @@ public class EngineSimulation implements EngineInterface {
 			ServerView servView = new ServerView(mapConfig.getN(),
 					mapConfig.getM(), servs, mapJ);
 			view = new View(mapConfig.getN(), mapConfig.getM(), mapJ,
-					servView, carsView);
+					servView, carsView, null);
 		}
 
 		animate = new Animation(this);

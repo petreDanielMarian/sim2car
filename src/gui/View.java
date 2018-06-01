@@ -7,6 +7,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -19,6 +20,7 @@ import javax.swing.SwingUtilities;
 
 import model.GeoCar;
 import model.GeoServer;
+import model.GeoTrafficLightMaster;
 
 import org.openstreetmap.gui.jmapviewer.JMapViewer;
 
@@ -30,6 +32,7 @@ public class View extends JFrame {
 	JPanel map;
 	ServerView serv;
 	List<CarView> carsView;
+	TreeMap<Long, GeoTrafficLightMaster> trafficLightView;
 
 	private JTextArea timer = new JTextArea();
 	private JTextArea comms = new JTextArea();
@@ -38,12 +41,45 @@ public class View extends JFrame {
 	ChartView cht;
 
 	public View(int N, int M, JMapViewer map, ServerView serv,
-			List<CarView> carsView) {
+			List<CarView> carsView, TreeMap<Long, GeoTrafficLightMaster> trafficLightView) {
 		this.N = N;
 		this.M = M;
 		this.map = map;
+		map.addMouseListener(new MouseListener() {
+			
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void mousePressed(MouseEvent e) {
+				System.out.println(e.getX() + " " + e.getY());
+				System.out.println(map.getPosition(e.getX(), e.getY()));
+				
+			}
+			@Override
+			public void mouseExited(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void mouseEntered(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
 		this.serv = serv;
 		this.carsView = carsView;
+		this.trafficLightView = trafficLightView;
 		initView();
 	}
 
