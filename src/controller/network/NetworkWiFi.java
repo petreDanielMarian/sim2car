@@ -1,6 +1,7 @@
 package controller.network;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import model.Entity;
 import model.GeoCar;
@@ -96,6 +97,92 @@ public class NetworkWiFi extends NetworkInterface {
 		}
 		
 		return serverInRange.getNetworkInterface(this.getType());
+	}
+	
+	public List<NetworkInterface> discoverClosestsTrafficLightMasters() {
+		Entity owner = getOwner();
+		ArrayList<GeoTrafficLightMaster> mtl = (ArrayList<GeoTrafficLightMaster>) owner.getMasterTrafficLights();
+		
+		GeoTrafficLightMaster mtlInRange1 = mtl.get(0);
+		GeoTrafficLightMaster mtlInRange2 = mtl.get(1);;
+		GeoTrafficLightMaster mtlInRange3 = mtl.get(2);;
+		
+		double maxDist1 = Utils.distance(owner.getCurrentPos().lat, owner.getCurrentPos().lon,
+				mtlInRange1.getCurrentPos().lat, mtlInRange1.getCurrentPos().lon);
+		
+		double maxDist2 = Double.MAX_VALUE;
+		double maxDist3 = Double.MAX_VALUE;
+		double dist = 0;
+
+		for (int i = 0; i < mtl.size(); i++) {
+			GeoTrafficLightMaster s = mtl.get(i);
+			dist = Utils.distance(owner.getCurrentPos().lat, owner.getCurrentPos().lon,
+					s.getCurrentPos().lat, s.getCurrentPos().lon);
+			if (dist < RoutingApplicationParameters.distMax && s.getId() != owner.getId()) {
+				if (dist < maxDist1) {
+					maxDist3 = maxDist2;
+					maxDist2 = maxDist1;
+					maxDist1 = dist;
+					mtlInRange3 = mtlInRange2;
+					mtlInRange2 = mtlInRange1;
+					mtlInRange1 = s;
+					continue;
+				}
+				
+				if (dist < maxDist2) {
+					maxDist3 = maxDist2;
+					maxDist2 = dist;
+					mtlInRange3 = mtlInRange2;
+					mtlInRange2 = s;
+					continue;
+				}
+				
+				if (dist < maxDist3) {
+					maxDist3 = dist;
+					mtlInRange3 = s;
+				}
+
+			}
+		}
+		
+		List<NetworkInterface> ret = new ArrayList<NetworkInterface>();
+		
+		ret.add(mtlInRange3.getNetworkInterface(this.getType()));
+		ret.add(mtlInRange2.getNetworkInterface(this.getType()));
+		ret.add(mtlInRange1.getNetworkInterface(this.getType()));
+
+		return ret;
+	}
+	
+	
+	
+	/* Discover the closest 3 traffic light masters */
+	public NetworkInterface discoverClosestTrafficLightMaster() {
+		Entity owner = getOwner();
+		ArrayList<GeoTrafficLightMaster> mtl = (ArrayList<GeoTrafficLightMaster>) owner.getMasterTrafficLights();
+		
+		GeoTrafficLightMaster mtlInRange = mtl.get(0);
+		
+		double maxDist = Utils.distance(owner.getCurrentPos().lat, owner.getCurrentPos().lon,
+				mtlInRange.getCurrentPos().lat, mtlInRange.getCurrentPos().lon);
+
+		double dist = 0;
+
+		for (int i = 0; i < mtl.size(); i++) {
+			GeoTrafficLightMaster s = mtl.get(i);
+			dist = Utils.distance(owner.getCurrentPos().lat, owner.getCurrentPos().lon,
+					s.getCurrentPos().lat, s.getCurrentPos().lon);
+			if (dist < RoutingApplicationParameters.distMax && s.getId() != owner.getId()) {
+				
+				if (dist < maxDist) {
+					maxDist = dist;
+					mtlInRange = s;
+				}
+
+			}
+		}
+
+		return mtlInRange.getNetworkInterface(this.getType());
 	}
 	
 	public NetworkInterface discoverTrafficLight(GeoTrafficLightMaster trafficLightMaster) {

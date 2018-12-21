@@ -13,6 +13,8 @@ public enum MessageType {
 	UNKNOWN,
 	SERVER_UPDATE,
 	/* Used by TrafficLightControlApplication */
-		ADD_WAITING_QUEUE,
-		REMOVE_WAITING_QUEUE
+	ADD_WAITING_QUEUE,
+	REMOVE_WAITING_QUEUE,
+	/* Used by SincronizeIntersectionsApplication */
+	SYNCHRONIZE_TRAFFIC_LIGHTS
 }

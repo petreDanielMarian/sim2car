@@ -90,6 +90,11 @@ public class MapConfiguration implements MapConfig {
 	public String getTrafficLightsFilename() {
 		return OSUtils.correctThePath(prop.getProperty("trafficLightsFileName"));
 	}
+	
+	@Override
+	public String getTrafficLightsLoaded() {
+		return OSUtils.correctThePath(prop.getProperty("trafficLightsLoaded"));
+	}
 
 	@Override
 	public String getIndexTableFilename() {

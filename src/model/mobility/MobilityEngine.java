@@ -178,37 +178,21 @@ public class MobilityEngine {
 		}
 		//System.out.println("try to add " + way.id + " " + nodeIndex);*/
 
-		node.setTrafficLightControl(trafficLightMaster.getId());
-		if (way.neighs.containsKey(node.id)) {
-			for (Long wayIdNeigh : way.neighs.get(node.id)) {
-				Way wayNeigh = getWay(wayIdNeigh);
-				//System.out.println(wayIdNeigh + " " + wayNeigh.getDirection());
-				int nodeNeighIndex = wayNeigh.getNodeIndex(node.id);
-				Node nodeNeigh = wayNeigh.getNodeByIndex(nodeNeighIndex);
-				nodeNeigh.setTrafficLightControl(trafficLightMaster.getId());
-			}
+		for (Node nodeToSetTrafficLight : trafficLightMaster.getNodes()) {
+			nodeToSetTrafficLight.setTrafficLightControl(trafficLightMaster.getId());
 		}
-		synchronized (way) {
-
-			/*
-			 * Test if the segment where current car should be placed is less than the current street number
-			 * of segments
-			 
-			if (way.streetQueues[queueNr].size() <= queueSegmentIndex)
-				return false;
-			
-			/* Test if the cell with number cellIndex is already populated with other car 
-			if (way.streetQueues[queueNr].get(queueSegmentIndex).containsKey(cellIndex)) {
-				return false;
-			}*/
-
-			
-			//Cell newCell = new Cell(cellIndex, trafficLight.getId());
-			//way.streetQueues[queueNr].get(queueSegmentIndex).put(newCell.cellNr, newCell);
-
-			//System.out.println("added semaphore");
-			return true;
-		}
+//		node.setTrafficLightControl(trafficLightMaster.getId());
+		
+//		if (way.neighs.containsKey(node.id)) {
+//			for (Long wayIdNeigh : way.neighs.get(node.id)) {
+//				Way wayNeigh = getWay(wayIdNeigh);
+//				//System.out.println(wayIdNeigh + " " + wayNeigh.getDirection());
+//				int nodeNeighIndex = wayNeigh.getNodeIndex(node.id);
+//				Node nodeNeigh = wayNeigh.getNodeByIndex(nodeNeighIndex);
+//				nodeNeigh.setTrafficLightControl(trafficLightMaster.getId());
+//			}
+//		}
+		return true;
 	}
 	
 	/**

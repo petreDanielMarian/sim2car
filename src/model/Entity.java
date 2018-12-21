@@ -82,6 +82,20 @@ public class Entity {
 			return engine.getServers();
 		}
 	}
+	
+	/* Returns all the master traffic lights in the simulator */ 
+	public List<GeoTrafficLightMaster> getMasterTrafficLights() {
+		EngineInterface engine = SimulationEngine.getInstance();
+		if( engine == null )
+		{	
+			/* Use the old Engine of Simulator */
+			return EngineSimulation.getInstance().getMasterTrafficLights();
+		}
+		else
+		{
+			return engine.getMasterTrafficLights();
+		}
+	}
 
 	public GeoCar getPeer(long id) {
 		// TODO EngineSimulation

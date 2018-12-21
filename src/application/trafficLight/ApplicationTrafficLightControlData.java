@@ -2,12 +2,27 @@ package application.trafficLight;
 
 import java.io.Serializable;
 
+import model.MapPoint;
+
+/**
+ * This class is used to represent the traffic light control app data which is send from the car to the
+ * master traffic light
+ * @author Andreea
+ *
+ */
 public class ApplicationTrafficLightControlData implements Serializable {
 	private String msg;
 	private Long carId;
 	private Long wayId;
 	private int direction;
+	private MapPoint mapPoint;
 	
+	public MapPoint getMapPoint() {
+		return mapPoint;
+	}
+	public void setMapPoint(MapPoint mapPoint) {
+		this.mapPoint = mapPoint;
+	}
 	public String getMsg() {
 		return msg;
 	}

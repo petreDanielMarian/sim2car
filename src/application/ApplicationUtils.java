@@ -4,6 +4,7 @@ import java.util.Vector;
 
 import controller.engine.EngineSimulation;
 import controller.newengine.SimulationEngine;
+import application.multipleIntersections.SynchronizeIntersectionsApplication;
 import application.routing.RoutingApplicationCar;
 import application.routing.RoutingApplicationServer;
 import application.streetvisits.StreetVisitsApplication;
@@ -53,6 +54,22 @@ public class ApplicationUtils {
 		switch (type) {
 			case TRAFFIC_LIGHT_CONTROL_APP:
 				return SimulationEngine.getInstance() != null ? new ApplicationTrafficLightControl(trafficLight) : null;
+		default:
+			return null;
+		}
+	}
+	
+	/**
+	 * Create the application for current Traffic Light object
+	 * @param type - Application type
+	 * @param trafficLight - Traffic Light object
+	 * @return
+	 */
+	public static Application activateApplicationSynchronizeTrafficLight( ApplicationType type, GeoTrafficLightMaster trafficLight)
+	{
+		switch (type) {
+			case SYNCHRONIZE_INTERSECTIONS_APP:
+				return SimulationEngine.getInstance() != null ? new SynchronizeIntersectionsApplication(trafficLight) : null;
 		default:
 			return null;
 		}

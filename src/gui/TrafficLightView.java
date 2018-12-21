@@ -34,6 +34,16 @@ public class TrafficLightView {
 	}
 	
 	
+	public MapPoint getCurrentPoint() {
+		return currentPoint;
+	}
+
+
+	public void setCurrentPoint(MapPoint currentPoint) {
+		this.currentPoint = currentPoint;
+	}
+
+
 	public void updateTrafficLightView() {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
@@ -86,9 +96,24 @@ public class TrafficLightView {
 	public void setColor(Color x) {
 		trafficLightColor = x;
 	}
+	public void setColor(String color) {
+		if (color.equals("red")) {
+			this.trafficLightColor = Color.red;
+			return;
+		}
+		this.trafficLightColor = Color.green;
+	}
 	
 	public Color getColor() {
 		return this.trafficLightColor;
+	}
+	
+	public String getColorString() {
+		
+		if (this.trafficLightColor == Color.red)
+			return "red";
+		
+		return "green";
 	}
 	
 	public long getWayId() {
@@ -108,5 +133,10 @@ public class TrafficLightView {
 
 	public void setDirection(int direction) {
 		this.direction = direction;
+	}
+	
+	@Override
+	public String toString() {
+		return this.direction + " " + currentPoint + "\n";
 	}
 }

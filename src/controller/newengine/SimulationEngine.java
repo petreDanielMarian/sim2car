@@ -102,7 +102,8 @@ public class SimulationEngine implements EngineInterface {
 		
 		entities.putAll(EngineUtils.getCars(getMapConfig().getTracesListFilename(), viewer, mobilityEngine) );
 		entities.putAll(EngineUtils.getServers(getMapConfig().getAccessPointsFilename(), viewer, mobilityEngine) );
-		entities.putAll(EngineUtils.getTrafficLights(getMapConfig().getTrafficLightsFilename(), viewer, mobilityEngine));
+		entities.putAll(EngineUtils.getTrafficLights(getMapConfig().getTrafficLightsFilename(),
+				getMapConfig().getTrafficLightsLoaded(), viewer, mobilityEngine));
 			
 		for (Entity e : entities.values()) {
 			if (e instanceof GeoServer) {
@@ -148,6 +149,7 @@ public class SimulationEngine implements EngineInterface {
 						if (e instanceof GeoTrafficLightMaster && ((GeoTrafficLightMaster) e).getActive() == 1) {
 							threadPool.submit(new TrafficLightApplicationsRun((GeoTrafficLightMaster) e));
 						}
+						
 					}
 
 					threadPool.waitForThreadPoolProcessing();
@@ -241,6 +243,17 @@ public class SimulationEngine implements EngineInterface {
 		return null;
 	}
 
+	@Override
+	public List<GeoTrafficLightMaster> getMasterTrafficLights() {
+		ArrayList<GeoTrafficLightMaster> masterTL = new ArrayList<GeoTrafficLightMaster>();
+		for (Entity e : entities.values()) {
+			if (e instanceof GeoTrafficLightMaster) {
+				masterTL.add((GeoTrafficLightMaster)e);
+			}
+		}
+		return masterTL;
+	}
+	
 	@Override
 	public List<GeoServer> getServers() {
 		ArrayList<GeoServer> servers = new ArrayList<GeoServer>();

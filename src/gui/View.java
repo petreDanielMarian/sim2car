@@ -21,9 +21,16 @@ import javax.swing.SwingUtilities;
 import model.GeoCar;
 import model.GeoServer;
 import model.GeoTrafficLightMaster;
+import model.MapPoint;
+import model.OSMgraph.Node;
+import model.OSMgraph.Way;
+import model.mobility.MobilityEngine;
+import utils.tracestool.Utils;
 
+import org.openstreetmap.gui.jmapviewer.Coordinate;
 import org.openstreetmap.gui.jmapviewer.JMapViewer;
 
+import controller.newengine.EngineUtils;
 import controller.newengine.SimulationEngine;
 
 public class View extends JFrame {
@@ -57,7 +64,31 @@ public class View extends JFrame {
 			public void mousePressed(MouseEvent e) {
 				System.out.println(e.getX() + " " + e.getY());
 				System.out.println(map.getPosition(e.getX(), e.getY()));
+				Coordinate coord = map.getPosition(e.getX(), e.getY());
 				
+				Node node = null;
+				double dist = Double.MAX_VALUE;
+				
+				for (Way way : MobilityEngine.getInstance().streetsGraph.values()) {
+					
+					if (coord.getLat() >= way.min_lat && coord.getLat() <= way.max_lat
+							&& coord.getLon() >= way.min_long && coord.getLon() <= way.max_long) {
+						
+						Node found = way.getClosestNode(coord.getLat(), coord.getLon());
+						double distFound = Utils.distance(coord.getLat(), coord.getLon(), found.lat, found.lon);
+						
+						if ((node != null && distFound < dist) || (node == null)) {
+								node = found;
+								dist = distFound;
+						}
+					}
+				}
+				
+				GeoTrafficLightMaster mtl = EngineUtils.discoverClosestTrafficLightMaster(node.lat, node.lon);
+				
+				System.out.println("Neights " + MobilityEngine.getInstance().streetsGraph.get(mtl.getNode().wayId).neighs.get(mtl.getNode().id).size());
+				System.out.println(node + " One way" + MobilityEngine.getInstance().streetsGraph.get(node.wayId).getDirection());
+				System.out.println("master " + dist + " " + mtl.getId() + " " + mtl.getNode() + " | \n" + mtl.getTrafficLights().toString());
 			}
 			@Override
 			public void mouseExited(MouseEvent e) {
