@@ -26,6 +26,7 @@ import utils.Pair;
 import utils.TraceParsingTool;
 import application.Application;
 import application.ApplicationType;
+import application.routing.RoutingApplicationCar;
 import application.routing.RoutingApplicationData;
 import application.trafficLight.ApplicationTrafficLightControlData;
 
@@ -364,6 +365,13 @@ public class GeoCar extends Entity {
 
 		return g;
 	}
+	
+	public void setTimeReachDestination() {
+		long time = SimulationEngine.getInstance().getSimulationTime();
+		System.out.println("reach destination");
+		RoutingApplicationCar.timeReachDestination.put(this.getId(), time);
+	}
+	
 	/**
 	 * Prepares the next position the car will go to.
 	 * This must be called after the updateSpeed method.
@@ -450,8 +458,9 @@ public class GeoCar extends Entity {
 			Node last = route.getIntersectionList().get(route.getIntersectionList().size() - 1);
 			if (route.getIntersectionList().size() == 1 && 
 					(mobility.isBetween(end.lat, end.lon, last.lat, last.lon, lat, lon))) {
-					/* TODO(Cosmin): Test if the code ever reach this point */
 					newPos = end;
+					/* reach destination */
+					setTimeReachDestination();
 			} else {
 				newPos = MapPoint.getMapPoint(lat, lon,
 											  this.getCurrentPos().occupied,

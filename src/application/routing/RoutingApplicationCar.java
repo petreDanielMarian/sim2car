@@ -55,6 +55,10 @@ public class RoutingApplicationCar extends Application {
 	public Vector<MapPoint> oldPoses = new Vector<MapPoint>();
 
 	public static TreeMap<Long, Long> streetVisits = new TreeMap<Long, Long>();
+	
+	/* key = carId value = time */
+	public static TreeMap<Long, Long> timeReachDestination = new TreeMap<Long, Long>();
+	
 	//public static TreeMap<Long, Double> streetCongestionD = new TreeMap<Long, Double>();
 
 	public static TreeMap<Long, TreeMap<Long,Double>> streetsCost = new TreeMap<Long, TreeMap<Long,Double>>();
@@ -286,7 +290,8 @@ public class RoutingApplicationCar extends Application {
 	public String stop() {
 		return null;
 	}
-	public static void stopGlobalApplicationActions(){
+	
+	private static void writeCongestionStatistics() {
 		PrintWriter writer = null;
 		try {
 			writer = new PrintWriter("routingapp_statistics.txt", "UTF-8");
@@ -315,8 +320,29 @@ public class RoutingApplicationCar extends Application {
 		} catch (UnsupportedEncodingException e1) {
 			e1.printStackTrace();
 		}
+	}
+	
+	private static void writeTimeReachDestinationStatistics() {
+		PrintWriter writer = null;
+		try {
+			writer = new PrintWriter("timereachdestination_statistics.txt", "UTF-8");
+			writer.println("#carID time");
+			for( Map.Entry<Long, Long> entry : timeReachDestination.entrySet() )
+			{
+				writer.println(entry.getKey() +" "+entry.getValue());	
+			}
+			writer.close();
 
-
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (UnsupportedEncodingException e1) {
+			e1.printStackTrace();
+		}		
+	}
+	
+	public static void stopGlobalApplicationActions(){
+		writeCongestionStatistics();
+		writeTimeReachDestinationStatistics();
 	}
 
 	/* Computes the cost of the street so that the car can update them from it's point of view */

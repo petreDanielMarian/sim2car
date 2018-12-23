@@ -334,6 +334,14 @@ public class GeoTrafficLightMaster extends Entity{
 		}
 		return result;
 	}
+	
+	public String stopNetwork() {
+		String result = "";
+		for (NetworkInterface net : this.netInterfaces) {
+			result += net.stop();
+		}
+		return result;
+	}
 
 	
 }

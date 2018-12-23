@@ -281,11 +281,16 @@ public class SimulationEngine implements EngineInterface {
 
 	public void stopActions()
 	{
+		System.out.println("stop actions");
 		/* do the finalization actions for each entities*/
 		for (Entity e : entities.values()) {
 			if (e instanceof GeoCar && ((GeoCar) e).getActive() == 1) {
 				((GeoCar) e).stopApplications();
 				((GeoCar) e).stopNetwork();
+			}
+			if (e instanceof GeoTrafficLightMaster) {
+				((GeoTrafficLightMaster) e).stopApplications();
+				((GeoTrafficLightMaster) e).stopNetwork();
 			}
 		}
 		for( ApplicationType type : Globals.activeApplications )
