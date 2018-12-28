@@ -4,19 +4,19 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
-import java.util.Vector;
 
 import utils.Pair;
 import application.Application;
 import application.ApplicationType;
 import application.multipleIntersections.SynchronizeIntersectionsData;
+import application.trafficLight.ApplicationTrafficLightControl;
 import application.trafficLight.ApplicationTrafficLightControlData;
 import controller.network.NetworkInterface;
 import controller.network.NetworkType;
 import controller.network.NetworkWiFi;
+import controller.newengine.SimulationEngine;
 import gui.TrafficLightView;
 import model.OSMgraph.Node;
-import model.OSMgraph.Way;
 import model.mobility.MobilityEngine;
 import model.network.Message;
 import model.network.MessageType;
@@ -43,6 +43,10 @@ public class GeoTrafficLightMaster extends Entity{
 	/** traffic light nodes for entities */
 	private List<Node> nodes = new ArrayList<Node>();
 	
+	private long sumWaitingTime = 0;
+	private long sumQueueLenth = 0;
+	private long noWaits = 0;
+	
 	public List<Node> getNodes() {
 		return nodes;
 	}
@@ -52,8 +56,9 @@ public class GeoTrafficLightMaster extends Entity{
 	}
 
 	/** Number of cars waiting for green for each direction 
-	 * key - (way id, direction)*/
-	private TreeMap<Pair<Long, Integer>, Integer> noCarsWaiting;
+	 *  Waiting time for the first car
+	 * key - (way id, direction)  value - (firstCarWaitingTime, noCarsWaiting)*/
+	private TreeMap<Pair<Long, Integer>, Pair<Long, Integer>> waitingQueue;
 	
 	/** Maximum number of cars waiting for green */
 	private int maxNoCarsWaiting = 0;
@@ -63,9 +68,17 @@ public class GeoTrafficLightMaster extends Entity{
 	
 	private Integer updateLock = 1;
 	
-	private long simulationTimeLastChange = -1;
+	private long simulationTimeLastChange = 0;
 	
-	private long timeCurrentPhase = Globals.trafficLightTime;
+	private long timeCurrentPhase = Globals.normalTrafficLightTime;
+
+	public long getTimeCurrentPhase() {
+		return timeCurrentPhase;
+	}
+
+	public void setTimeCurrentPhase(long timeCurrentPhase) {
+		this.timeCurrentPhase = timeCurrentPhase;
+	}
 
 	/** intersection type */
 	private int intersectionType = 3;
@@ -75,42 +88,123 @@ public class GeoTrafficLightMaster extends Entity{
 		this.node = node;
 		this.intersectionType = intersectionType;
 		this.mobility = MobilityEngine.getInstance();
-		this.noCarsWaiting = new TreeMap<Pair<Long, Integer>, Integer>();
+		this.waitingQueue = new TreeMap<Pair<Long, Integer>, Pair<Long,Integer>>();
+	}
+	
+	public void collectWaitingQueueStatistics(long stopTime, long noCarsWaiting) {
+//		System.out.println("collecting data: " + stopTime + " " + noCarsWaiting);
+		/* Waiting queue statistics */
+		sumWaitingTime += (SimulationEngine.getInstance().getSimulationTime() - stopTime);
+		sumQueueLenth += noCarsWaiting;
+		noWaits++;
 	}
 	
 	/** Determine if the traffic lights need to change their color depending on the waiting
 	 * queues. */
 	public void changeColor() {
-		Pair<Long, Integer> maxQueueKey = null;
-		
-		//System.out.println("change color");
-		synchronized (updateLock) {
-			/* find the traffic light with the maximum cars waiting */
-			for (Pair<Long, Integer> key : noCarsWaiting.keySet()) {
-				if (noCarsWaiting.get(key) > maxNoCarsWaiting) {
-					maxNoCarsWaiting = noCarsWaiting.get(key);
+		Pair<Long, Integer> maxQueueKey = null;	
+	
+		if (Globals.useTrafficLights && timeExpired()) {
+			for (Pair<Long, Integer> key : waitingQueue.keySet()) {
+				if (waitingQueue.get(key).getSecond() > maxNoCarsWaiting) {
+					maxNoCarsWaiting = waitingQueue.get(key).getSecond();
 					maxQueueKey = key;
 				}
 			}
+			if (maxQueueKey != null)
+				collectWaitingQueueStatistics(waitingQueue.get(maxQueueKey).getFirst(), 
+						waitingQueue.get(maxQueueKey).getSecond());
 			
-			if (maxNoCarsWaiting > 0) {
-				/* change color if this queue has red color*/
-				if (getTrafficLightColor(maxQueueKey.getFirst(), maxQueueKey.getSecond())
+			timeCurrentPhase = Globals.normalTrafficLightTime;
+			setTimeZero();
+			maxNoCarsWaiting = 0;
+			maxQueueKey = null;
+			waitingQueue.clear();
+			return;
+		}
+		
+		if (Globals.useDynamicTrafficLights) {
+			if (waitingQueue.size() == 1) {
+				/* Set green for this queue */
+				/* set next phase time */
+				maxNoCarsWaiting  = waitingQueue.get(waitingQueue.keySet().iterator().next()).getSecond();
+				timeCurrentPhase = (maxNoCarsWaiting + 1) * Globals.passIntersectionTime > Globals.maxTrafficLightTime ?
+						Globals.maxTrafficLightTime : maxNoCarsWaiting * Globals.passIntersectionTime;
+				
+				if (timeCurrentPhase < Globals.minTrafficLightTime)
+					timeCurrentPhase = Globals.minTrafficLightTime;
+				
+				if (getTrafficLightColor(waitingQueue.keySet().iterator().next().getFirst(), waitingQueue.keySet().iterator().next().getSecond())
 						== Color.red) {
-					
-					//System.out.println("Change because is red " +maxNoCarsWaiting + " waiting");
 					setTimeZero();
-					/* set next phase time */
-					timeCurrentPhase = Globals.trafficLightTime;
-					/* restart phase */
-					maxNoCarsWaiting = 0;
-					maxQueueKey = null;
-					noCarsWaiting.clear();
 				}
 				
-				if (getTrafficLightColor(maxQueueKey.getFirst(), maxQueueKey.getSecond())
-						== Color.green) {
-					timeCurrentPhase = Globals.trafficLightTime;
+				/* Waiting queue statistics */
+				collectWaitingQueueStatistics(waitingQueue.get(waitingQueue.keySet().iterator().next()).getFirst(), 
+										maxNoCarsWaiting);
+
+				
+				/* restart phase */
+				maxNoCarsWaiting = 0;
+				maxQueueKey = null;
+				waitingQueue.clear();
+				return;
+			}
+			
+			if (timeExpired()) {
+				synchronized (updateLock) {
+					/* Find the traffic light with the maximum cars waiting */
+					for (Pair<Long, Integer> key : waitingQueue.keySet()) {
+						if (waitingQueue.get(key).getFirst() > Globals.maxWaitingTime) {
+							/* There is a car that has been waiting for too long 
+							 * (avoid infinite waiting) */
+							maxNoCarsWaiting = waitingQueue.get(key).getSecond();
+							maxQueueKey = key;
+							break;
+						}
+						if (waitingQueue.get(key).getSecond() > maxNoCarsWaiting) {
+							maxNoCarsWaiting = waitingQueue.get(key).getSecond();
+							maxQueueKey = key;
+						}
+					}
+					
+					if (maxNoCarsWaiting > 0) {
+							/* change color if this queue has red color*/
+							
+							/* set next phase time */
+							timeCurrentPhase = (maxNoCarsWaiting + 1) * Globals.passIntersectionTime > Globals.maxTrafficLightTime ?
+									Globals.maxTrafficLightTime : maxNoCarsWaiting * Globals.passIntersectionTime;
+							
+							if (timeCurrentPhase < Globals.minTrafficLightTime)
+								timeCurrentPhase = Globals.minTrafficLightTime;
+							
+							if (getTrafficLightColor(maxQueueKey.getFirst(), maxQueueKey.getSecond())
+									== Color.red) {
+								setTimeZero();
+							}
+							
+							/* Waiting queue statistics */
+							collectWaitingQueueStatistics(waitingQueue.get(maxQueueKey).getFirst(), 
+									waitingQueue.get(maxQueueKey).getSecond());
+							
+							/* restart phase */
+							maxNoCarsWaiting = 0;
+							maxQueueKey = null;
+							waitingQueue.clear();
+							return;	
+					}
+		//				
+		//				if (getTrafficLightColor(maxQueueKey.getFirst(), maxQueueKey.getSecond())
+		//						== Color.green) {
+		//					timeCurrentPhase = Globals.maxTrafficLightTime;
+		//				}
+	
+						timeCurrentPhase = Globals.normalTrafficLightTime;
+						setTimeZero();
+						/* restart phase */
+						maxNoCarsWaiting = 0;
+						maxQueueKey = null;
+						waitingQueue.clear();
 				}
 			}
 		}
@@ -118,45 +212,53 @@ public class GeoTrafficLightMaster extends Entity{
 	}
 	
 	public void setTimeZero() {
-		simulationTimeLastChange = -1;
+		simulationTimeLastChange = SimulationEngine.getInstance().getSimulationTime();
 	}
 	
 	public void updateTrafficLightViews(long simulationTime) {
-		// time's up
-		if (simulationTime - simulationTimeLastChange >= timeCurrentPhase || simulationTimeLastChange == -1) {
 			for (TrafficLightView trafficLightView : trafficLightViewList) {
 				trafficLightView.updateTrafficLightView();
 			}
-			simulationTimeLastChange = simulationTime;
-		}
 	}
 	
+	public boolean timeExpired() {
+		if (SimulationEngine.getInstance().getSimulationTime() - simulationTimeLastChange >= timeCurrentPhase) {
+			//System.out.println("time expired " + SimulationEngine.getInstance().getSimulationTime());
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean needsColorsUpdate(long simulationTime) {
+		if (simulationTime == simulationTimeLastChange) {
+			return true;
+		}
+		return false;
+	}
 	/***
 	 * The master traffic light will put the car that has sent the message to the corresponding waiting queue.
 	 * @param data
 	 */
 	public void addCarToQueue(ApplicationTrafficLightControlData data) {
 		Pair<Long, Integer> key = new Pair<Long, Integer>(data.getWayId(), data.getDirection());
-		int noCars = 1;
 		
 		synchronized (updateLock) {
-			if (noCarsWaiting.containsKey(key)) {
-				noCars = noCarsWaiting.get(key);
-				noCarsWaiting.put(key, noCars + 1);
+			if (waitingQueue.containsKey(key)) {
+				Pair<Long, Integer> value = new Pair<Long, Integer>
+					(waitingQueue.get(key).getFirst(), waitingQueue.get(key).getSecond() + 1);
+
+				waitingQueue.put(key, value);
 			}
 			else {
-				noCarsWaiting.put(key, 1);
+				Pair<Long, Integer> value = new Pair<Long, Integer>
+					(data.getTimeStop(), 1);
+				
+				waitingQueue.put(key, value);
 			}
 			
-			sendDataToNeighbors(data.getMapPoint(), data.getWayId(), data.getDirection(), noCarsWaiting.get(key));
-			
-//			if (noCars > maxNoCarsWaiting) {
-//				maxNoCarsWaiting = noCars;
-//			}
-//				/* change color of traffic light to green */
-//				setTimeZero();
-//				maxNoCarsWaiting = 0;
-//			}
+			sendDataToNeighbors(data.getMapPoint(), 
+					data.getWayId(), data.getDirection(), 
+					waitingQueue.get(key).getSecond());
 		}
 		
 	}
@@ -190,9 +292,6 @@ public class GeoTrafficLightMaster extends Entity{
 	public void synchronizeWithNeighbors(SynchronizeIntersectionsData data) {
 		Pair<Long, Integer> key = new Pair<Long, Integer>(data.getWayId(), data.getDirection());
 		
-		Node fromMaster = data.getFromNode();
-		
-		long wayCar = data.getWayId();
 		long wayFromMaster = data.getFromNode().wayId;
 		long wayMaster = this.node.wayId;
 		//Get all ways from this intersection (where this master traffic light is situated)
@@ -207,7 +306,7 @@ public class GeoTrafficLightMaster extends Entity{
 			}
 		}
 
-		if (noCarsWaiting.containsKey(key)) {
+		if (waitingQueue.containsKey(key)) {
 //			int noCars = noCarsWaiting.get(key);
 //			noCarsWaiting.put(key, noCars + data.getQueueSize());
 //			System.out.println(this.getId() + " synchronize with neighbour no cars:" + noCars);
@@ -244,13 +343,17 @@ public class GeoTrafficLightMaster extends Entity{
 				if (link == k.getWayId()) {
 //					System.out.println("Found traffic light view: " + k.getWayId() + " " + k.getDirection());
 					key = new Pair<Long, Integer>(k.getWayId(), k.getDirection());
-					//System.out.println("Change because of neighbour");
-					if (noCarsWaiting.containsKey(key)) {
-						int noCars = noCarsWaiting.get(key);
-						noCarsWaiting.put(key, noCars + 3);
+					if (getId() == 706 || getId() == 705)
+						System.out.println("Change because of neighbour");
+					if (waitingQueue.containsKey(key)) {
+						Pair<Long, Integer> value = new Pair<Long, Integer>
+							(waitingQueue.get(key).getFirst(), waitingQueue.get(key).getSecond() + 3);
+						waitingQueue.put(key, value);
 					}
 					else {
-						noCarsWaiting.put(key, 2);
+						Pair<Long, Integer> value = new Pair<Long, Integer>
+							(SimulationEngine.getInstance().getSimulationTime(), 3);
+						waitingQueue.put(key, value);
 					}
 				}
 //				System.out.println(k.getWayId());
@@ -326,8 +429,20 @@ public class GeoTrafficLightMaster extends Entity{
 		}
 		return result;
 	}
+	
+	public void sendStatistics() {
+		if (noWaits == 0)
+			return;
+		
+		double avg_waitingTime = sumWaitingTime / noWaits;
+		double avg_queueLength = sumQueueLenth / noWaits;
+		ApplicationTrafficLightControl.saveData(this.getId(), avg_waitingTime, avg_queueLength);
+	}
 
 	public String stopApplications() {
+		/* Send statistics */
+		sendStatistics();
+		
 		String result = "";
 		for (Application application : this.applications) {
 			result += application.stop();

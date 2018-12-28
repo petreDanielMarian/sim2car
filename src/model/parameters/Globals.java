@@ -48,9 +48,21 @@ public class Globals {
 	
 	@Parameter(names = {"--carsCount"}, description = "The number of cars simulated.")
     public static int carsCount = 150;
+	
+	@Parameter(names = {"--maxWaitingTime"}, description = "The maximum simulation time a car can wait at a traffic light.")
+    public static int maxWaitingTime = 120;
 
-	@Parameter(names = {"--trafficLightTime"}, description = "The time of a traffic ligth.")
-    public static int trafficLightTime = 50;
+	@Parameter(names = {"--normalTrafficLightTime"}, description = "The normal amount of time a traffic light is green or red.")
+    public static int normalTrafficLightTime = 30;
+	
+	@Parameter(names = {"--minTrafficLightTime"}, description = "The minimum amount of time a traffic light is green or red.")
+    public static int minTrafficLightTime = 15;
+	
+	@Parameter(names = {"--maxTrafficLightTime"}, description = "The maximum amount of time a traffic light can be green or red.")
+    public static int maxTrafficLightTime = 90;
+	
+	@Parameter(names = {"--passIntersectionTime"}, description = "The time needed by a car to pass the intersection.")
+    public static int passIntersectionTime = 3;
 	
 	@Parameter(names = {"--loadGraph"}, description = "Activate the loading graph.", arity = 1)
     public static boolean loadGraph = false;
@@ -78,6 +90,15 @@ public class Globals {
 	 
 	@Parameter(names = {"--useTreadPool"}, description = "If true, use the treadpool")
 	public static boolean useTreadPool = true;
+	
+	@Parameter(names = {"--useTrafficLights"}, description = "If true, use traffic lights")
+	public static boolean useTrafficLights = false;
+	
+	@Parameter(names = {"--useDynamicTrafficLights"}, description = "If true, use traffic lights")
+	public static boolean useDynamicTrafficLights = false;
+	
+	@Parameter(names = {"--carIdFuelStatistics"}, description = "The car id used to retrieve fuel consumption statistics.")
+    public static long carIdFuelStatistics = -1;
 	
 	/**
 	 * Proxy usage from commandline

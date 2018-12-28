@@ -54,7 +54,7 @@ public class RoutingApplicationServer extends Application{
 	private ApplicationType type = ApplicationType.ROUTING_APP;
 
 	public TreeMap<Long,Double> streetsAVGSpeed = new TreeMap<Long,Double>();
-
+	
 	/* The graph for Server area costs */
 	public TreeMap<Long, TreeMap<Pair<Long,Long>,RoutingRoadCost>> areaCostsGraph = new TreeMap<Long, TreeMap<Pair<Long,Long>,RoutingRoadCost>>();
 
@@ -221,7 +221,7 @@ public class RoutingApplicationServer extends Application{
 				System.out.println("add");
 			} else if (costs.get(data.getP()).time > data.getC().time) {
 				costs.put(data.getP(), data.getC());
-				System.out.println("update");
+				//System.out.println("update");
 			}
 
 			areaCostsGraph.put(data.prevStreet, costs);

@@ -143,6 +143,7 @@ public final class EngineUtils {
 				ex.printStackTrace();
 			}
 		}
+		System.out.println("cars" + cars.size());
 		return cars;
 	}
 	
@@ -335,15 +336,17 @@ public final class EngineUtils {
 		else
 			master.addApplication( app );
 		
-		/* Create each application which is defined for traffic light*/
-		type = ApplicationType.SYNCHRONIZE_INTERSECTIONS_APP;
-		app = ApplicationUtils.activateApplicationSynchronizeTrafficLight(type, master);
-		if( app == null )
-		{
-			logger.info(" Failed to create application with type " + type);
+		if (Globals.useDynamicTrafficLights) {
+			/* Create each application which is defined for traffic light*/
+			type = ApplicationType.SYNCHRONIZE_INTERSECTIONS_APP;
+			app = ApplicationUtils.activateApplicationSynchronizeTrafficLight(type, master);
+			if( app == null )
+			{
+				logger.info(" Failed to create application with type " + type);
+			}
+			else
+				master.addApplication( app );
 		}
-		else
-			master.addApplication( app );
 	}
 	
 	/***
@@ -390,7 +393,8 @@ public final class EngineUtils {
 					MapPoint mapPoint = MapPoint.getMapPoint(node);
 					master.setCurrentPos(mapPoint);
 					
-					addTrafficLightApps(master);
+					if (Globals.useTrafficLights || Globals.useDynamicTrafficLights)
+						addTrafficLightApps(master);
 					continue;
 				}
 				if (keyword.equals("nodes")) {
@@ -494,24 +498,8 @@ public final class EngineUtils {
 				}
 				
 				/* Create each application which is defined for traffic light*/
-				ApplicationType type = ApplicationType.TRAFFIC_LIGHT_CONTROL_APP;
-				Application app = ApplicationUtils.activateApplicationTrafficLight(type, trafficLight);
-				if( app == null )
-				{
-					logger.info(" Failed to create application with type " + type);
-					continue;
-				}
-				trafficLight.addApplication( app );
-				
-				/* Create each application which is defined for traffic light*/
-				type = ApplicationType.SYNCHRONIZE_INTERSECTIONS_APP;
-				app = ApplicationUtils.activateApplicationSynchronizeTrafficLight(type, trafficLight);
-				if( app == null )
-				{
-					logger.info(" Failed to create application with type " + type);
-					continue;
-				}
-				trafficLight.addApplication( app );
+				if (Globals.useTrafficLights || Globals.useDynamicTrafficLights)
+					addTrafficLightApps(trafficLight);
 
 				//if another master traffic light exists
 				if (!viewer.addTrafficLightViews(trafficLight)) {

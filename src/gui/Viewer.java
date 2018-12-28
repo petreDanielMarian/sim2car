@@ -324,7 +324,8 @@ public class Viewer {
 		if (Globals.showGUI) {
 			for (GeoTrafficLightMaster trafficLightMaster : trafficLightMasterList.values()) {
 				long simulationTime = view.getTimer().equals("") ? 0 : Long.parseLong(view.getTimer());
-				trafficLightMaster.updateTrafficLightViews(simulationTime);
+				if (trafficLightMaster.needsColorsUpdate(simulationTime))
+					trafficLightMaster.updateTrafficLightViews(simulationTime);
 			}
 			view.repaint();
 		}

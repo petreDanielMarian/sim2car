@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import application.ApplicationType;
 import application.routing.RoutingApplicationCar;
 import application.routing.RoutingApplicationParameters;
+import application.trafficLight.ApplicationTrafficLightControl;
 import model.Entity;
 import model.GeoCar;
 import model.GeoServer;
@@ -102,8 +103,11 @@ public class SimulationEngine implements EngineInterface {
 		
 		entities.putAll(EngineUtils.getCars(getMapConfig().getTracesListFilename(), viewer, mobilityEngine) );
 		entities.putAll(EngineUtils.getServers(getMapConfig().getAccessPointsFilename(), viewer, mobilityEngine) );
-		entities.putAll(EngineUtils.getTrafficLights(getMapConfig().getTrafficLightsFilename(),
-				getMapConfig().getTrafficLightsLoaded(), viewer, mobilityEngine));
+		if (Globals.useTrafficLights || Globals.useDynamicTrafficLights) {
+			System.out.println("use traffic lights");
+			entities.putAll(EngineUtils.getTrafficLights(getMapConfig().getTrafficLightsFilename(),
+					getMapConfig().getTrafficLightsLoaded(), viewer, mobilityEngine));
+		}
 			
 		for (Entity e : entities.values()) {
 			if (e instanceof GeoServer) {
@@ -281,7 +285,6 @@ public class SimulationEngine implements EngineInterface {
 
 	public void stopActions()
 	{
-		System.out.println("stop actions");
 		/* do the finalization actions for each entities*/
 		for (Entity e : entities.values()) {
 			if (e instanceof GeoCar && ((GeoCar) e).getActive() == 1) {
@@ -313,6 +316,9 @@ public class SimulationEngine implements EngineInterface {
 				RoutingApplicationCar.stopGlobalApplicationActions();
 				break;
 			case STREET_VISITS_APP:
+				break;
+			case TRAFFIC_LIGHT_CONTROL_APP:
+				ApplicationTrafficLightControl.stopGlobalApplicationActions();
 				break;
 		}
 	}

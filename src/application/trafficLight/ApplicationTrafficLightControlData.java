@@ -16,7 +16,14 @@ public class ApplicationTrafficLightControlData implements Serializable {
 	private Long wayId;
 	private int direction;
 	private MapPoint mapPoint;
+	private long timeStop;
 	
+	public long getTimeStop() {
+		return timeStop;
+	}
+	public void setTimeStop(long timeStop) {
+		this.timeStop = timeStop;
+	}
 	public MapPoint getMapPoint() {
 		return mapPoint;
 	}

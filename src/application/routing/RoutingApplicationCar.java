@@ -3,6 +3,7 @@ package application.routing;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import model.OSMgraph.Way;
 import model.mobility.MobilityEngine;
 import model.network.Message;
 import model.network.MessageType;
+import model.parameters.Globals;
 import application.Application;
 import application.ApplicationType;
 
@@ -56,8 +58,11 @@ public class RoutingApplicationCar extends Application {
 
 	public static TreeMap<Long, Long> streetVisits = new TreeMap<Long, Long>();
 	
-	/* key = carId value = time */
-	public static TreeMap<Long, Long> timeReachDestination = new TreeMap<Long, Long>();
+	/* key = carId value = (time, avg_speed) */
+	public static TreeMap<Long, String> timeReachDestination = new TreeMap<Long, String>();
+	
+	/* key = carId value = (speed, accel, time) */
+	public static List<String> carSpeed = new ArrayList<String>();
 	
 	//public static TreeMap<Long, Double> streetCongestionD = new TreeMap<Long, Double>();
 
@@ -325,11 +330,34 @@ public class RoutingApplicationCar extends Application {
 	private static void writeTimeReachDestinationStatistics() {
 		PrintWriter writer = null;
 		try {
-			writer = new PrintWriter("timereachdestination_statistics.txt", "UTF-8");
-			writer.println("#carID time");
-			for( Map.Entry<Long, Long> entry : timeReachDestination.entrySet() )
+			if (Globals.useDynamicTrafficLights)
+				writer = new PrintWriter("timereachdestination_statistics_withDynamicTrafficLights.txt", "UTF-8");
+			else if (Globals.useTrafficLights)
+				writer = new PrintWriter("timereachdestination_statistics_withTrafficLights.txt", "UTF-8");
+			else 
+				writer = new PrintWriter("timereachdestination_statistics_noTrafficLights.txt", "UTF-8");
+			writer.println("#carID time_reach_destination(sec) avg_speed(km/h) avg_fuel_consumption(L/h)");
+			for( Map.Entry<Long, String> entry : timeReachDestination.entrySet() )
 			{
 				writer.println(entry.getKey() +" "+entry.getValue());	
+			}
+			writer.close();
+
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (UnsupportedEncodingException e1) {
+			e1.printStackTrace();
+		}		
+	}
+	
+	private static void writeSpeedStatistics() {
+		PrintWriter writer = null;
+		try {
+			writer = new PrintWriter("speed_statistics.txt", "UTF-8");
+			writer.println("speed[m/s] acceleration[m/s2] time[sec] instant_fuel[L/h]");
+			for( String entry : carSpeed)
+			{
+				writer.println(entry);
 			}
 			writer.close();
 
@@ -343,6 +371,7 @@ public class RoutingApplicationCar extends Application {
 	public static void stopGlobalApplicationActions(){
 		writeCongestionStatistics();
 		writeTimeReachDestinationStatistics();
+		writeSpeedStatistics();
 	}
 
 	/* Computes the cost of the street so that the car can update them from it's point of view */

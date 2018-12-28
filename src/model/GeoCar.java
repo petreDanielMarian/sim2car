@@ -4,11 +4,15 @@ import java.io.File;
 import java.awt.Color;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.security.Timestamp;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
+
+import javax.print.attribute.standard.DateTimeAtCompleted;
 
 import controller.network.NetworkInterface;
 import controller.network.NetworkType;
@@ -22,8 +26,10 @@ import model.network.MessageType;
 import model.parameters.Globals;
 import model.personality.Personality;
 import model.personality.RegularPersonality;
+import utils.ComputeAverageFuelConsumption;
 import utils.Pair;
 import utils.TraceParsingTool;
+import utils.tracestool.Utils;
 import application.Application;
 import application.ApplicationType;
 import application.routing.RoutingApplicationCar;
@@ -39,10 +45,20 @@ public class GeoCar extends Entity {
 	 * will be checked against traffic rule and will replace currentPos.
 	 */
 	private MapPoint nextPos = null;
+	
+
+	private double distanceFromStart = 0;
+	private double fuelFromStart = 0;
+	private long startTime;
 
 	/** The speed of the car. */
 	private double speed = 0.0;
-
+	
+	/** The latest speed of the car. */
+	private double oldSpeed = 0.0;
+	private double acceleration = 0.0;
+	private long lastTime = 0;
+	
 	/** If the Car still has points in the trace. */
 	private int active = 1;
 
@@ -57,8 +73,6 @@ public class GeoCar extends Entity {
 	
 	/** Whether the car has moved after preparing move */
 	public AtomicBoolean hasMoved = new AtomicBoolean();
-	
-	private int seconds = 0;
 
 	private long routeStartTime = 0;
 	private long routes_idx = 0;
@@ -170,6 +184,7 @@ public class GeoCar extends Entity {
 	 */
 	public double computeSpeedFreeDriving() {
 		double computedSpeed = speed;
+		acceleration = driver.getAccelerationFreeDriving();
 		if (computedSpeed < driver.getWantedSpeed(this.getCurrentPos().wayId)) {
 			computedSpeed = computedSpeed + driver.getAccelerationFreeDriving() * (double) Globals.timePeriod;
 		}
@@ -196,6 +211,7 @@ public class GeoCar extends Entity {
 			/* When the driver has enough distance to slow down gradually,
 			   the acceleration is negative. */
 			computedSpeed = speed + accel * (double) Globals.timePeriod;
+			acceleration = accel;
 		} else {
 			/* The driver is already closer to the front car than the desired
 			   distance, so he has to brake as hard as possible. */
@@ -224,6 +240,7 @@ public class GeoCar extends Entity {
 	 */
 	public double computeSpeedMaximumBrake() {
 		double accel = driver.getAccelerationMaximumBrake();
+		acceleration = accel;
 		return speed + accel * (double) Globals.timePeriod;
 	}
 
@@ -281,8 +298,10 @@ public class GeoCar extends Entity {
 			if (distance < 25  && trafficLightInFront.getTrafficLightColor(wayId, direction) == Color.red && !isStoppedAtTrafficLight()) {
 				//System.out.println("stop " + this.getCurrentPos());
 				speed = 0;
+				acceleration = 0;
 				setStopppedAtTrafficLight(true);
-				sendDataToTrafficLight(trafficLightInFront, wayId, direction, this.getCurrentPos());
+				if (Globals.useTrafficLights || Globals.useDynamicTrafficLights)
+					sendDataToTrafficLight(trafficLightInFront, wayId, direction, this.getCurrentPos());
 			} 
 			 else {
 				 
@@ -318,6 +337,7 @@ public class GeoCar extends Entity {
 		data.setWayId(wayId);
 		data.setDirection(direction);
 		data.setMapPoint(mapPoint);
+		data.setTimeStop(SimulationEngine.getInstance().getSimulationTime());
 		
 		//System.out.println("Car " + this.getId() + " sends data to traffic light " + trafficLightMaster.getId());
 		msg.setPayload(data);
@@ -366,10 +386,22 @@ public class GeoCar extends Entity {
 		return g;
 	}
 	
+	/***
+	 * Sets simulation time, real time in seconds, avg speed
+	 */
 	public void setTimeReachDestination() {
-		long time = SimulationEngine.getInstance().getSimulationTime();
+		String value;
 		System.out.println("reach destination");
-		RoutingApplicationCar.timeReachDestination.put(this.getId(), time);
+		
+		value = String.valueOf(SimulationEngine.getInstance().getSimulationTime() - startTime);
+		
+		// [km/h]
+		double avgSpeed = (distanceFromStart / (SimulationEngine.getInstance().getSimulationTime() - startTime))
+				*3.6;
+		double avgFuelConsumption = ComputeAverageFuelConsumption.computeAverageFuelConsumption(fuelFromStart, 
+				(SimulationEngine.getInstance().getSimulationTime() - startTime));
+		value += " " + avgSpeed + " " + avgFuelConsumption;		
+		RoutingApplicationCar.timeReachDestination.put(this.getId(), value);
 	}
 	
 	/**
@@ -489,6 +521,7 @@ public class GeoCar extends Entity {
 	 */
 	public void prepareMove() {
 		try {
+					
 			/**
 			 * Hasn't started driving on a route, if it fails to add point to street
 			 * give up and try at the next tick.
@@ -506,7 +539,31 @@ public class GeoCar extends Entity {
 			}
 			
 			elementAhead = mobility.getElementAhead(this, driver.getInfluenceDistance(speed));
+			
+			oldSpeed = speed;
 			updateSpeed();
+			
+			/* Fuel consumption statistics */
+			if (oldSpeed != speed) {
+				
+				/* For computing average fuel consumption */
+				long deltaTime = SimulationEngine.getInstance().getSimulationTime() - lastTime;
+				/* Compute instant fuel consumption [mL] */
+				double instantFuelConsumtion = ComputeAverageFuelConsumption.computeFuel(speed, acceleration);
+				double fuelConsumption = instantFuelConsumtion * deltaTime;
+				fuelFromStart += fuelConsumption;
+				
+				/* For full fuel consumption statistics - only for one car */
+				if (Globals.carIdFuelStatistics == this.getId()) {
+					String value = speed + " " + acceleration + " " + deltaTime + " " + 
+								instantFuelConsumtion * 3.6 + " ";
+					RoutingApplicationCar.carSpeed.add(value);
+				}
+				
+				lastTime = SimulationEngine.getInstance().getSimulationTime();
+				oldSpeed = speed;
+			}
+			
 //			System.out.println("speed: " + speed);
 //			System.out.println("way: " + this.getCurrentPos().wayId);
 			nextPos = getNextPosition();
@@ -518,7 +575,7 @@ public class GeoCar extends Entity {
 		} catch (RuntimeException e) {
 			/** Something was wrong with the route, so it's better to start a new one.*/
 			setBeginNewRoute(true);
-			long timei = SimulationEngine.getInstance().getSimulationTime() - routeStartTime;
+//			long timei = SimulationEngine.getInstance().getSimulationTime() - routeStartTime;
 //			if(timei > 1 )
 //				routesTime.append((routes_idx++) + " " + timei + System.lineSeparator());
 //			}		
@@ -558,12 +615,11 @@ public class GeoCar extends Entity {
 				MapPoint newPosition = mobility.moveCarInCell(this, this.getNextPos(), between, next);
 				
 				if (newPosition == null) {
-					System.out.println("here");
 					resetRoute();
 					return;
 				}
 				if (newPosition == this.getCurrentPos()) {
-					if (still > 100) {
+					if (still > 200) {
 						/* we've stayed too much time in the same place */
 						resetRoute();
 						System.out.println("Car " + this.getId() + " has spent too much time in the same place. Reset route.");
@@ -579,6 +635,9 @@ public class GeoCar extends Entity {
 					this.routes.get(0).getIntersectionList().addAll(0, next);
 					this.nextPos = newPosition;
 				}
+				/* Compute total distance for avg speed */
+				if (newPosition != null && getCurrentPos() != null)
+					distanceFromStart += Utils.distance(getCurrentPos().lat, getCurrentPos().lon, newPosition.lat, newPosition.lon);
 	
 				mobility.removeCar(this.getCurrentPos(), this.getId());
 				mobility.removeQueuedCar(oldNextPos, this.getId());
@@ -734,7 +793,6 @@ public class GeoCar extends Entity {
 		if (this.routes.size() != 0) {
 			this.routes.remove(0);
 		}
-		seconds = 0;
 		speed = 0.0;
 		mobility.removeCar(this.getCurrentPos(), this.getId());
 		this.setCurrentPos(null);
@@ -748,7 +806,6 @@ public class GeoCar extends Entity {
 	public void finishMove() {
 		nodesToMoveOver = null;
 		nextPos = null;
-		seconds++;
 	}
 
 	/**
@@ -773,6 +830,7 @@ public class GeoCar extends Entity {
 	public void start() {
 		setBeginNewRoute(false);
 		initRoute();
+		startTime = SimulationEngine.getInstance().getSimulationTime();
 	}
 	
 	public boolean isStoppedAtTrafficLight() {
