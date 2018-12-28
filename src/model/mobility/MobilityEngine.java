@@ -44,13 +44,7 @@ public class MobilityEngine {
 		final MapConfig mapConfig = SimulationEngine.getInstance().getMapConfig();
 		streetsGraph = EngineUtils.loadGraph(mapConfig.getStreetsFilename(),
 				  							 mapConfig.getPartialGraphFilename());
-		
-		System.out.println(streetsGraph.get(Long.parseLong("48959760")).getClosestNode(37.759842, -122.4767484));
-		System.out.println(streetsGraph.get(Long.parseLong("48959760")).nodes.size());
-		System.out.println(streetsGraph.get(Long.parseLong("48959760")).nodes.get(0).lat + ", " + streetsGraph.get(Long.parseLong("48959760")).nodes.get(1).lon);
-		
-		System.out.println(getSegmentNumber(streetsGraph.get(Long.parseLong("48959760")).getClosestNode(37.759842, -122.4767484)));
-		
+				
 		if( RoutingApplicationParameters.state != RoutingApplicationState.COST_COLLECTING )
 		/* TODO: guard this the mobility type */
 		PRGraph = EngineUtils.loadPRGraph();

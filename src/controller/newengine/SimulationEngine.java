@@ -318,7 +318,8 @@ public class SimulationEngine implements EngineInterface {
 			case STREET_VISITS_APP:
 				break;
 			case TRAFFIC_LIGHT_CONTROL_APP:
-				ApplicationTrafficLightControl.stopGlobalApplicationActions();
+				if (Globals.useTrafficLights || Globals.useDynamicTrafficLights)
+					ApplicationTrafficLightControl.stopGlobalApplicationActions();
 				break;
 		}
 	}

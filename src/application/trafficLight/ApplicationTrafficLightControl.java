@@ -11,6 +11,7 @@ import model.GeoTrafficLightMaster;
 import model.network.Message;
 import model.network.MessageType;
 import model.parameters.Globals;
+import utils.tracestool.parameters.GenericParams;
 import application.Application;
 import application.ApplicationType;
 import controller.network.NetworkInterface;
@@ -99,9 +100,9 @@ public class ApplicationTrafficLightControl extends Application {
 		PrintWriter writer = null;
 		try {
 			if (Globals.useDynamicTrafficLights)
-				writer = new PrintWriter("waitingTime&QueueLength_withDynamicTrafficLights.txt", "UTF-8");
+				writer = new PrintWriter(GenericParams.mapConfig.getCity() + "waitingTime&QueueLength_withDynamicTrafficLights.txt", "UTF-8");
 			else if (Globals.useTrafficLights)
-				writer = new PrintWriter("waitingTime&QueueLength_withTrafficLights.txt", "UTF-8");
+				writer = new PrintWriter(GenericParams.mapConfig.getCity() + "waitingTime&QueueLength_withTrafficLights.txt", "UTF-8");
 
 			writer.println("trafficLightMasterId avg_waiting_time[sec] avg_queue_length");
 			for( Map.Entry<Long, String> entry : queuesStatistics.entrySet() )

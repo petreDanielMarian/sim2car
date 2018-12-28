@@ -484,8 +484,11 @@ public final class EngineUtils {
 				
 				if (mapPoint.segmentIndex < mobilityEngine.getWay(wayId).nodes.size() - 1)
 					mapPoint.cellIndex = mobilityEngine.getCellIndex(node, mobilityEngine.streetsGraph.get(wayId).getNodeByIndex(mapPoint.segmentIndex + 1), mapPoint);
-				else
+				else {
+					if (mapPoint.segmentIndex <= 0)
+						mapPoint.segmentIndex = 1;
 					mapPoint.cellIndex = mobilityEngine.getCellIndex(mobilityEngine.streetsGraph.get(wayId).getNodeByIndex(mapPoint.segmentIndex - 1), node, mapPoint);
+				}
 				trafficLight.setCurrentPos(mapPoint);
 				trafficLights.put(trafficLight.getId(), trafficLight);
 				

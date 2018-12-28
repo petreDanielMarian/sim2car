@@ -17,6 +17,7 @@ import controller.network.NetworkWiFi;
 import controller.newengine.SimulationEngine;
 import utils.tracestool.Utils;
 import utils.tracestool.algorithms.OSMGraph;
+import utils.tracestool.parameters.GenericParams;
 import model.GeoCar;
 import model.GeoCarRoute;
 import model.MapPoint;
@@ -331,11 +332,11 @@ public class RoutingApplicationCar extends Application {
 		PrintWriter writer = null;
 		try {
 			if (Globals.useDynamicTrafficLights)
-				writer = new PrintWriter("timereachdestination_statistics_withDynamicTrafficLights.txt", "UTF-8");
+				writer = new PrintWriter(GenericParams.mapConfig.getCity() + "timereachdestination_statistics_withDynamicTrafficLights.txt", "UTF-8");
 			else if (Globals.useTrafficLights)
-				writer = new PrintWriter("timereachdestination_statistics_withTrafficLights.txt", "UTF-8");
+				writer = new PrintWriter(GenericParams.mapConfig.getCity() + "timereachdestination_statistics_withTrafficLights.txt", "UTF-8");
 			else 
-				writer = new PrintWriter("timereachdestination_statistics_noTrafficLights.txt", "UTF-8");
+				writer = new PrintWriter(GenericParams.mapConfig.getCity() + "timereachdestination_statistics_noTrafficLights.txt", "UTF-8");
 			writer.println("#carID time_reach_destination(sec) avg_speed(km/h) avg_fuel_consumption(L/h)");
 			for( Map.Entry<Long, String> entry : timeReachDestination.entrySet() )
 			{
@@ -353,7 +354,7 @@ public class RoutingApplicationCar extends Application {
 	private static void writeSpeedStatistics() {
 		PrintWriter writer = null;
 		try {
-			writer = new PrintWriter("speed_statistics.txt", "UTF-8");
+			writer = new PrintWriter(GenericParams.mapConfig.getCity() + "speed_statistics.txt", "UTF-8");
 			writer.println("speed[m/s] acceleration[m/s2] time[sec] instant_fuel[L/h]");
 			for( String entry : carSpeed)
 			{
