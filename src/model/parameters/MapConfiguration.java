@@ -85,6 +85,16 @@ public class MapConfiguration implements MapConfig {
 	public String getStreetsFilename() {
 		return OSUtils.correctThePath(prop.getProperty("streetsFileName"));
 	}
+	
+	@Override
+	public String getTrafficLightsFilename() {
+		return OSUtils.correctThePath(prop.getProperty("trafficLightsFileName"));
+	}
+	
+	@Override
+	public String getTrafficLightsLoaded() {
+		return OSUtils.correctThePath(prop.getProperty("trafficLightsLoaded"));
+	}
 
 	@Override
 	public String getIndexTableFilename() {
@@ -233,5 +243,4 @@ public class MapConfiguration implements MapConfig {
 	public String getPRGraphFilename() {
 		return OSUtils.correctThePath(prop.getProperty("PRGraphFileName"));
 	}
-
 }

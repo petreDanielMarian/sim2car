@@ -1,8 +1,13 @@
 package utils;
 
+import java.io.Serializable;
 
-public class Pair<F, S> implements Comparable<Pair>{
-    final private F first;  /* first member of pair */
+public class Pair<F, S> implements Comparable<Pair>, Serializable{
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = -7888271302861751757L;
+	final private F first;  /* first member of pair */
     final private S second; /* second member of pair */
 
     public Pair(F first, S second) {

@@ -117,7 +117,7 @@ public class CongestionHeatmap extends JFrame {
 	public CongestionHeatmap() {
 		super("CongestionHeatmap");
 		setLayout(new OverlayLayout());
-		mapConfig = MapConfiguration.getInstance("e:/Cursuri/master/cercetare/Sim2Car/trunk/src/configurations/simulator/sanfrancisco.properties");
+		mapConfig = MapConfiguration.getInstance("D:/Master/Master2/Cercetare/sim2car-merge_trafficLightControl_smartRouting/sim2car-merge_trafficLightControl_smartRouting/src/configurations/simulator/sanfrancisco.properties");
 		map = new JMapViewer();
 		//map_lat_min 39.4140061 map_lon_m;;;in 115.6860661 map_lat_max 40.426 map_lon_max 117.1189678
 		map.setDisplayPositionByLatLon(mapConfig.getMapCentre().getY(), mapConfig.getMapCentre().getX(), 9);
@@ -200,7 +200,7 @@ public class CongestionHeatmap extends JFrame {
 		//List<Map.Entry<Pair<Long,Long>, Pair<Long,Double>>> sortedStatistics = readCongestionStatistics( "e:/Cursuri/master/cercetare/Sim2Car/RoutingCongestionStatistics/rome/second_injected/streetcostGraph_617_7198.txt" );
 		//List<Map.Entry<Pair<Long,Long>, Pair<Long,Double>>> sortedStatistics = readCongestionStatistics( "e:/Cursuri/master/cercetare/Sim2Car/RoutingCongestionStatistics/rome/congpr/streetcostGraph_617_7198.txt" );
 		//List<Map.Entry<Pair<Long,Long>, Pair<Long,Double>>> sortedStatistics = readCongestionStatistics( "e:/Cursuri/master/cercetare/Sim2Car/RoutingCongestionStatistics/rome/onlypr/streetcostGraph_617_7198.txt" );
-		List<Map.Entry<Pair<Long,Long>, Pair<Long,Double>>> sortedStatistics = readCongestionStatistics( "e:/Cursuri/master/cercetare/Sim2Car/RoutingCongestionStatistics/sanfrancisco/second_injected/streetcostGraph_837_7198.txt" );
+		List<Map.Entry<Pair<Long,Long>, Pair<Long,Double>>> sortedStatistics = readCongestionStatistics( "D:/Master/Master2/Cercetare/sim2car-merge_trafficLightControl_smartRouting/sim2car-merge_trafficLightControl_smartRouting/streetcostGraph_171_1798.txt" );
 		//List<Map.Entry<Pair<Long,Long>, Pair<Long,Double>>> sortedStatistics = readCongestionStatistics( "e:/Cursuri/master/cercetare/Sim2Car/RoutingCongestionStatistics/sanfrancisco/congpr/streetcostGraph_837_7198.txt" );
 		//List<Map.Entry<Pair<Long,Long>, Pair<Long,Double>>> sortedStatistics = readCongestionStatistics( "e:/Cursuri/master/cercetare/Sim2Car/RoutingCongestionStatistics/sanfrancisco/congprrd/streetcostGraph_837_7198.txt" );
 		frame.setVisible(true);

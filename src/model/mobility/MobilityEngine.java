@@ -11,8 +11,10 @@ import java.util.logging.Logger;
 import application.routing.RoutingApplicationData.RoutingApplicationState;
 import application.routing.RoutingApplicationParameters;
 import application.routing.RoutingRoadCost;
+import model.Entity;
 import model.GeoCar;
 import model.GeoCarRoute;
+import model.GeoTrafficLightMaster;
 import model.MapPoint;
 import model.OSMgraph.Cell;
 import model.OSMgraph.Node;
@@ -42,7 +44,7 @@ public class MobilityEngine {
 		final MapConfig mapConfig = SimulationEngine.getInstance().getMapConfig();
 		streetsGraph = EngineUtils.loadGraph(mapConfig.getStreetsFilename(),
 				  							 mapConfig.getPartialGraphFilename());
-		
+				
 		if( RoutingApplicationParameters.state != RoutingApplicationState.COST_COLLECTING )
 		/* TODO: guard this the mobility type */
 		PRGraph = EngineUtils.loadPRGraph();
@@ -147,6 +149,46 @@ public class MobilityEngine {
 		}
 	}
 	
+
+	/**
+	 * Adds a traffic light to the graph. It creates a cell for it on the street and adds
+	 * the traffic light to that cell. The traffic light must have the segment and the cell set.
+	 * It can fail if there is another car or traffic light on that same cell.
+	 * 
+	 * @param trafficLight	the traffic light to be added to the cell queue
+	 * @return true	if the cell has been added successfully, false otherwise
+	 */
+	public boolean addTrafficLight(GeoTrafficLightMaster trafficLightMaster) {
+		Node node = trafficLightMaster.getNode();
+		Way way = streetsGraph.get(node.wayId);
+
+		/*long cellIndex = trafficLightPoint.cellIndex;
+		
+		//System.out.println("try to add " + way.id + " " + nodeIndex + "Segment " + nodeIndex + " Cell " + cellIndex);
+		if (nodeIndex == -1 || cellIndex == -1 || nodeIndex == way.nodes.size()) {
+			logger.warning("Could not attach street to traffic light " + trafficLight.getId());
+			System.out.println("Could not attach street to traffic light " + trafficLight.getId() + " " + way.nodes.size());
+			return false;
+		}
+		//System.out.println("try to add " + way.id + " " + nodeIndex);*/
+
+		for (Node nodeToSetTrafficLight : trafficLightMaster.getNodes()) {
+			nodeToSetTrafficLight.setTrafficLightControl(trafficLightMaster.getId());
+		}
+//		node.setTrafficLightControl(trafficLightMaster.getId());
+		
+//		if (way.neighs.containsKey(node.id)) {
+//			for (Long wayIdNeigh : way.neighs.get(node.id)) {
+//				Way wayNeigh = getWay(wayIdNeigh);
+//				//System.out.println(wayIdNeigh + " " + wayNeigh.getDirection());
+//				int nodeNeighIndex = wayNeigh.getNodeIndex(node.id);
+//				Node nodeNeigh = wayNeigh.getNodeByIndex(nodeNeighIndex);
+//				nodeNeigh.setTrafficLightControl(trafficLightMaster.getId());
+//			}
+//		}
+		return true;
+	}
+	
 	/**
 	 * Return the cell index for a point between the two given nodes.
 	 * Cell 0 is considered to start at node lower.
@@ -167,6 +209,27 @@ public class MobilityEngine {
 				lower.lat, lower.lon, point.lat, point.lon);
 		
 		return (long)Math.round(distance/realCellSize);
+	}
+	
+	/**
+	 * Return the cell index for a point between the two given nodes.
+	 * Cell 0 is considered to start at node lower.
+	 * 
+	 * @param lower	the start node of the segment;
+	 * 				the reference point in computing the cell index
+	 * @param upper	the end node of the segment
+	 * @param point the point for which the cell number is to be computed
+	 * @return		the cell index
+	 */
+	public long getTrafficLightCellIndex(Node intersection, Node upper) {
+		double segmentLength = TraceParsingTool.distance(
+				intersection.lat, intersection.lon, upper.lat, upper.lon);
+		long nrCells = Math.round(segmentLength/Globals.maxCellLen);
+		double realCellSize = segmentLength/nrCells;
+		
+		double distance = segmentLength;
+		
+		return (long)0;
 	}
 	
 	/**
@@ -640,12 +703,12 @@ public class MobilityEngine {
 	 * 			Pair(car, distance) if there is a car, where distance is
 	 * 					the distance between the two cars
 	 */
-	public Pair<GeoCar, Double> getCarAhead(GeoCar car, double distance) {
+	public Pair<Entity, Double> getElementAhead(GeoCar car, double distance) {
 		MapPoint crtPos = car.getCurrentPos();
 		GeoCarRoute route = car.getCurrentRoute();
 		Way way = streetsGraph.get(crtPos.wayId);
 		Node crt = way.nodes.get(crtPos.segmentIndex);
-		GeoCar carAhead = null;
+		Entity elementAhead = null;
 		Long crtCell = crtPos.cellIndex;
 		double lat = crtPos.lat;
 		double lon = crtPos.lon;
@@ -660,6 +723,15 @@ public class MobilityEngine {
 		Node next = null;
 		while (it.hasNext()) {
 			next = it.next();
+			
+			/* Check if the next node has a traffic light control */
+			if (next.hasTrafficLightControl()) {
+				elementAhead = SimulationEngine.getInstance().entities.get(next.getTrafficLightId());
+				distAhead += TraceParsingTool.distance(lat, lon,
+						elementAhead.getCurrentPos().lat, elementAhead.getCurrentPos().lon);
+				return new Pair<Entity, Double>(elementAhead, distAhead);				
+			}
+			
 			if (crt.wayId != next.wayId) {
 				crt = getSegmentById(next.wayId, crt.id);
 				/**
@@ -696,18 +768,18 @@ public class MobilityEngine {
 			
 			if (segmentQueue.size() != 0) {
 				Cell cell = segmentQueue.firstEntry().getValue();
-				carAhead = (GeoCar)SimulationEngine.getInstance().
+				elementAhead = SimulationEngine.getInstance().
 								entities.get(cell.trafficEntityId);
 				
 				distAhead += TraceParsingTool.distance(lat, lon,
-						carAhead.getCurrentPos().lat, carAhead.getCurrentPos().lon);
-				return new Pair<GeoCar, Double>(carAhead, distAhead);
+						elementAhead.getCurrentPos().lat, elementAhead.getCurrentPos().lon);
+				return new Pair<Entity, Double>(elementAhead, distAhead);
 			}
 			
 			/* No car on this segment, move to the next one. */
 			double dist = TraceParsingTool.distance(lat, lon, crt.lat, crt.lon);
 			if (dist > distance)
-				return new Pair<GeoCar, Double>(null, null);
+				return new Pair<Entity, Double>(null, null);
 			distance -= dist;
 			distAhead += dist;
 			
@@ -716,7 +788,7 @@ public class MobilityEngine {
 			crt = next;
 		}
 		
-		return new Pair<GeoCar, Double>(null, null);
+		return new Pair<Entity, Double>(null, null);
 	}
 	
 	/** Returns the street from the graph that has the given id. */
@@ -730,6 +802,10 @@ public class MobilityEngine {
 		if (way.getNodeIndex(side.id) <= way.getNodeIndex(around.getFirst().id))
 			return around.getSecond();
 		return around.getFirst();
+	}
+	
+	public MapPoint getNodeOnOppositeSide2(Node upper, Node lower) {
+		return getPointInCell(lower, upper, 2);
 	}
 	
 	/**
@@ -933,6 +1009,10 @@ public class MobilityEngine {
 		SimulationEngine simulationEngine = SimulationEngine.getInstance();
 		Way newWay = getWay(newPosition.wayId);
 		Way oldWay = getWay(car.getCurrentPos().wayId);
+		
+		if (car.getSpeed() == 0) {
+			return car.getCurrentPos();
+		}
 
 		/* could not find an empty cell, the car must stay where it is */
 		MapPoint currentPosition = car.getCurrentPos();
@@ -1052,11 +1132,11 @@ public class MobilityEngine {
 	 * @param nodes		The intermediate nodes of the route
 	 * @return			A list of cars on the route
 	 */
-	public List<GeoCar> getCarsOnRoute(MapPoint start, MapPoint end, List<Node> nodes) {
+	public List<Entity> getCarsOnRoute(MapPoint start, MapPoint end, List<Node> nodes) {
 		Way way = getWay(start.wayId);
 		Node currentNode = null;
 		Node nextNode = way.getNodeByIndex(start.segmentIndex);
-		List<GeoCar> result = new LinkedList<GeoCar>();
+		List<Entity> result = new LinkedList<Entity>();
 		SimulationEngine simulationEngine = SimulationEngine.getInstance();
 		
 		Iterator<Node> it = nodes.iterator();
@@ -1069,7 +1149,7 @@ public class MobilityEngine {
 			}
 			List<Long> entities = way.getQueuedEntities(getSegmentNumber(currentNode));
 			for (Long id : entities) {
-				result.add((GeoCar)simulationEngine.getEntityById(id));
+				result.add(simulationEngine.getEntityById(id));
 			}
 		}
 		

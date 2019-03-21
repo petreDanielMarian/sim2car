@@ -10,6 +10,9 @@ public class Node implements Comparable<Node>, Serializable {
 	private static final long serialVersionUID = -3397967186656052290L;
 	/** The ID of the node */
 	public long id, wayId;
+	
+	private Long trafficLightControl = null;
+
 	/* The GPS coordinates of a node */
 	public double lat, lon;
 
@@ -26,6 +29,10 @@ public class Node implements Comparable<Node>, Serializable {
 	
 	public void setWayId(long id) {
 		wayId = id;
+	}
+	
+	public long getWayId() {
+		return wayId;
 	}
 	
 	  @Override
@@ -50,4 +57,18 @@ public class Node implements Comparable<Node>, Serializable {
 	public int compareTo(Node o) {
 		return (int)(this.id - o.id);
 	}
+	
+	public boolean hasTrafficLightControl() {
+		return trafficLightControl == null ? false : true;
+	}
+	
+	public Long getTrafficLightId() {
+		return trafficLightControl;
+	}
+	
+	public void setTrafficLightControl(Long trafficLightControl) {
+		this.trafficLightControl = trafficLightControl;
+	}
+	
+	
 }

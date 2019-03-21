@@ -1,7 +1,7 @@
 package model;
 
 /**
- * The class used to kep data about a point in the trace at a certain time
+ * The class used to keep data about a point in the trace at a certain time
  **/
 public class Location {
 

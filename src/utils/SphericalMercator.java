@@ -3,8 +3,15 @@ package utils;
 import java.awt.Point;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 
+import application.routing.RoutingApplicationParameters;
+import controller.network.NetworkInterface;
+import controller.newengine.SimulationEngine;
+import model.Entity;
+import model.GeoTrafficLightMaster;
 import model.PixelLocation;
+import utils.tracestool.Utils;
 
 /**
  * Utility class for Mercator.
@@ -199,4 +206,5 @@ public class SphericalMercator {
 		double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 		return earthRadius * c;
 	}
+	
 }

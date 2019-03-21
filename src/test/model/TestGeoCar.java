@@ -53,7 +53,7 @@ public class TestGeoCar {
 							 new ServerView(
 									 mapConfig.getN(), mapConfig.getM(),
 									 new ArrayList<GeoServer>(), mapJ),
-							carsView);
+							carsView, null);
 
 		final Date now = new Date(Globals.startTime);
 		

@@ -148,6 +148,6 @@ public class CarView {
 
 	public void setColor(Color x) {
 		carColor = x;
-		System.out.println("=== car " + id + " has color: " + x);
+		//System.out.println("=== car " + id + " has color: " + x);
 	}
 }

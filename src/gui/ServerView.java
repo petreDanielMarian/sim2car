@@ -19,24 +19,26 @@ public class ServerView {
 		this.map = map;
 		activateLocationServer();
 	}
-
+	
+	/* The 0.05 represents the distMax which is the radius of the circle of the server */
 	public void activateLocationServer() {
 		synchronized (servers) {
 			for (GeoServer sv : servers) {
 				MapPoint pt = sv.getCurrentPos();
-				MapMarkerCircle mk = new MapMarkerCircle(pt.lat, pt.lon, 0.002);
+				MapMarkerCircle mk = new MapMarkerCircle(pt.lat, pt.lon, 0.05);
 				mk.setColor(Color.RED);
 				map.addMapMarker(mk);
 			}
 		}
 	}
-
+	
+	/* The 0.05 represents the distMax which is the radius of the circle of the server */
 	public void initLocationServer(ArrayList<GeoServer> sers) {
 		synchronized (servers) {
 			servers = new ArrayList<GeoServer>(sers);
 			for (GeoServer sv : servers) {
 				MapPoint pt = sv.getCurrentPos();
-				MapMarkerCircle mk = new MapMarkerCircle(pt.lat, pt.lon, 0.002);
+				MapMarkerCircle mk = new MapMarkerCircle(pt.lat, pt.lon, 0.05);
 				mk.setColor(Color.RED);
 				map.addMapMarker(mk);
 			}

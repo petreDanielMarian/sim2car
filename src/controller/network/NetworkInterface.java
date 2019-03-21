@@ -8,6 +8,9 @@ import java.util.List;
 import model.Entity;
 import model.network.Message;
 
+/*
+ * Network interface used by WIFI
+ */
 public abstract class NetworkInterface {
 	private Entity owner;
 	
@@ -27,6 +30,7 @@ public abstract class NetworkInterface {
 	public abstract void processOutputQueue();
 	public abstract ArrayList<NetworkInterface> discoversServers();
 	public abstract ArrayList<NetworkInterface> discoversPeers();
+	public abstract NetworkInterface discoverClosestServer();
 	
 
 	public NetworkInterface(NetworkType type) {

@@ -9,7 +9,7 @@ import application.ApplicationType;
 public class StreetVisitsApplication extends Application {
 	GeoCar car;
 	MapPoint previousPos = null;
-	
+
 	public StreetVisitsApplication(GeoCar car) {
 		this.car = car;
 	}

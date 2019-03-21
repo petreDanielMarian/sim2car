@@ -1,18 +1,27 @@
 package controller.newengine;
 
+import gui.TrafficLightView;
 import gui.Viewer;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.Vector;
@@ -21,10 +30,12 @@ import java.util.logging.Logger;
 import application.Application;
 import application.ApplicationType;
 import application.ApplicationUtils;
+import application.routing.RoutingApplicationParameters;
 import application.routing.RoutingApplicationServer;
 import model.GeoCar;
 import model.GeoCarRoute;
 import model.GeoServer;
+import model.GeoTrafficLightMaster;
 import model.MapPoint;
 import model.PeanoKey;
 import model.PixelLocation;
@@ -43,6 +54,10 @@ import controller.network.NetworkType;
 import controller.network.NetworkUtils;
 import controller.network.NetworkWiFi;
 
+/**
+ * Class used to read the servers and the cars from files
+ *
+ */
 public final class EngineUtils {
 	
     /** Logger used by this class */
@@ -50,7 +65,11 @@ public final class EngineUtils {
     
 	/* for traffic entities id */
 	static int count = 0;
-
+		
+	/* Server info */
+	static double latEdge = 0d, lonEdge = 0d;
+	static long rows = 0, cols = 0;
+	
 	private EngineUtils() {}
 
 	/**
@@ -124,6 +143,7 @@ public final class EngineUtils {
 				ex.printStackTrace();
 			}
 		}
+		System.out.println("cars" + cars.size());
 		return cars;
 	}
 	
@@ -135,21 +155,20 @@ public final class EngineUtils {
 	 * @param mobilityEngine		the traffic engine to which we must add
 	 * 									the servers we read for this simulation
 	 * 
-	 * TODO: shouldn't we add the servers to the viewer as well? In the initial
-	 * EngineSimulation the ServerView receives the server list...
 	 */
 	static TreeMap<Long,GeoServer> getServers(String serverListFilename, Viewer viewer, MobilityEngine mobilityEngine) {
 		MapConfig mapConfig = SimulationEngine.getInstance().getMapConfig();
 		FileInputStream fstream = null;
 		SphericalMercator mercator = new SphericalMercator();
 		TreeMap<Long,GeoServer> servers = new TreeMap<Long,GeoServer>();
+		ArrayList<GeoServer> serversList = new ArrayList<>();
+		
 		try {
 			logger.info("Path received " + serverListFilename);
 			fstream = new FileInputStream(serverListFilename);
 			BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
 			String line;
-			double latEdge = 0d, lonEdge = 0d;
-			long rows = 0, cols = 0;
+
 
 			while ((line = br.readLine()) != null) {
 				if (line.startsWith("#"))
@@ -185,30 +204,226 @@ public final class EngineUtils {
 
 				count++;
 				MapPoint mp = new MapPoint(pix, lat, lon, false, 0);
-				/* TODO: GeoServer requires a GeoMap passed to it as last argument.
-				 * I don't see why the application can't take it from the SimulationEngine. */
-				GeoServer s = new GeoServer(mapConfig.getN(), mapConfig.getM(), count, mp);
 
-				s.addNetworkInterface(new NetworkWiFi(s));
+				GeoServer s = new GeoServer(mapConfig.getN(), mapConfig.getM(), count, mp);
+				//System.out.println(s.getId());
 				
-				/* Create each application which is defined */
-				for( ApplicationType type : Globals.activeApplications )
-				{
-					Application app = ApplicationUtils.activateApplicationServer(type, s);
-					if( app == null )
-					{
-						logger.info(" Failed to create application with type " + type);
-						continue;
-					}
-					if( app.getType() == ApplicationType.ROUTING_APP )
-					{
-						((RoutingApplicationServer)app).setGridSize(rows, cols);
-						((RoutingApplicationServer)app).setServerAreaSizes(latEdge, lonEdge);
-					}
-					s.addApplication( app );
-				}
+				addApplicationToServer(s);
 
 				servers.put(s.getId(), s);
+				serversList.add(s);
+			}
+			
+			br.close();
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				fstream.close();
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
+		}
+		
+		/* Add other servers to the map */
+		computeServersPositions(serversList, servers);
+		viewer.addServers(serversList);
+		System.out.println(servers.size() + " " + count);
+		/* Compute the neighbor servers of each server */
+		computeServerNeighbors(servers);
+
+		return servers;
+	}
+	
+	
+	/* Finds the neighbors of all servers */
+	public static void computeServerNeighbors(TreeMap<Long, GeoServer> serversMap) {
+		for (Map.Entry<Long, GeoServer> entry1 : serversMap.entrySet()) {
+			for (Map.Entry<Long, GeoServer> entry2 : serversMap.entrySet()) {
+				GeoServer s1 = entry1.getValue();
+				GeoServer s2 = entry2.getValue();
+				
+				if (Utils.distance(s1.getCurrentPos().lat, s1.getCurrentPos().lon,
+						s2.getCurrentPos().lat, s2.getCurrentPos().lon) < RoutingApplicationParameters.regionDistance +
+						RoutingApplicationParameters.distMax && s1.getId() != s2.getId()) {
+					s1.neighServers.add(s2.getId());
+				}
+			}
+		}
+	}
+	
+	public static void addApplicationToServer(GeoServer s) {
+		s.addNetworkInterface(new NetworkWiFi(s));
+		
+		/* Create each application which is defined */
+		for( ApplicationType type : Globals.activeApplications )
+		{
+			Application app = ApplicationUtils.activateApplicationServer(type, s);
+			if( app == null )
+			{
+				logger.info(" Failed to create application with type " + type);
+				continue;
+			}
+			if( app.getType() == ApplicationType.ROUTING_APP )
+			{
+				((RoutingApplicationServer)app).setGridSize(rows, cols);
+				((RoutingApplicationServer)app).setServerAreaSizes(latEdge, lonEdge);
+			}
+			s.addApplication(app);
+		}
+	}
+	
+	/* Computes the positions of the servers on the map */
+	private static void computeServersPositions(ArrayList<GeoServer> servers, TreeMap<Long, GeoServer> serversMap) {
+		Set<Entry<Long,Way>> ways = MobilityEngine.getInstance().streetsGraph.entrySet();
+		
+		for (Entry<Long,Way> entry : ways) {
+			Way auxWay = entry.getValue();
+			
+			// Check if the ways has any nodes in it
+			if (auxWay.nodes != null && auxWay.nodes.size() > 0) {
+				// We place our server on the first node of the way
+				Node auxNode = auxWay.nodes.get(0);
+				SphericalMercator mercator = new SphericalMercator();
+				MapConfig mapConfig = SimulationEngine.getInstance().getMapConfig();
+				
+				PixelLocation pix = mercator.LatLonToPixelLoc(auxNode.lat, auxNode.lon, Globals.zoomLevel);
+
+				pix.tile.y -= mapConfig.getBaseRow();
+				pix.tile.x -= mapConfig.getBaseColumn();
+				
+				MapPoint mp = new MapPoint(pix, auxNode.lat, auxNode.lon, false, 0);
+
+				GeoServer s = new GeoServer(mapConfig.getN(), mapConfig.getM(), count, mp);
+				boolean control = true;
+				
+				for (GeoServer s1 : servers) {
+					if (Utils.distance(s.getCurrentPos().lat, s.getCurrentPos().lon,
+							s1.getCurrentPos().lat, s1.getCurrentPos().lon) < RoutingApplicationParameters.regionDistance) {
+						control = false;
+						break;
+					}
+				}
+				
+				if (control) {
+					count++;
+					s.setId(count);
+					servers.add(s);
+					serversMap.put(s.getId(), s);
+				}
+				
+			}
+		}
+		
+		System.out.println(servers.size());
+	}
+	
+	private static void addTrafficLightApps(GeoTrafficLightMaster master) {
+		/* Create each network interface which is defined */
+		for( NetworkType type : Globals.activeNetInterfaces )
+		{
+			NetworkInterface netInterface = NetworkUtils.activateNetworkInterface(type, master);
+			master.addNetworkInterface(netInterface);
+		}
+		
+		/* Create each application which is defined for traffic light*/
+		ApplicationType type = ApplicationType.TRAFFIC_LIGHT_CONTROL_APP;
+		Application app = ApplicationUtils.activateApplicationTrafficLight(type, master);
+		if( app == null )
+		{
+			logger.info(" Failed to create application with type " + type);
+		}
+		else
+			master.addApplication( app );
+		
+		if (Globals.useDynamicTrafficLights) {
+			/* Create each application which is defined for traffic light*/
+			type = ApplicationType.SYNCHRONIZE_INTERSECTIONS_APP;
+			app = ApplicationUtils.activateApplicationSynchronizeTrafficLight(type, master);
+			if( app == null )
+			{
+				logger.info(" Failed to create application with type " + type);
+			}
+			else
+				master.addApplication( app );
+		}
+	}
+	
+	/***
+	 * Read existing traffic lights
+	 * @param file
+	 * @return
+	 */
+	private static TreeMap<Long,GeoTrafficLightMaster> readExistingTrafficLights(
+			String file, Viewer viewer, MobilityEngine mobilityEngine) {
+		
+		FileInputStream fstream = null;
+		TreeMap<Long,GeoTrafficLightMaster> trafficLights = new TreeMap<Long,GeoTrafficLightMaster>();
+		
+		try {
+			fstream = new FileInputStream(file);
+			BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
+			String line;
+			
+			//Format:
+			//		  master id idNode wayidNode latNote lonNode
+			// 		  wayId direction lat lon segmentIndex cellIndex color
+			
+			/* Read data about traffic lights */
+			GeoTrafficLightMaster master = null;
+			while ((line = br.readLine()) != null) {
+				
+				StringTokenizer st = new StringTokenizer(line, " ", false);
+				String keyword = st.nextToken(); 					/* master keyword */
+				if (keyword.equals("master")) {
+					
+					if (master != null) {
+						trafficLights.put(master.getId(), master);
+						viewer.addTrafficLightMaster(master);
+					}
+					
+					// traffic light master line
+					Long masterId = Long.parseLong(st.nextToken()); 	/* traffic light master id */
+					Long nodeId = Long.parseLong(st.nextToken()); 		/* node id */
+					Long wayId = Long.parseLong(st.nextToken()); 		/* way id" */
+					
+					Node node = mobilityEngine.streetsGraph.get(wayId).getNode(nodeId);
+					node.setWayId(wayId);
+					master = new GeoTrafficLightMaster(masterId, node, 3);
+					MapPoint mapPoint = MapPoint.getMapPoint(node);
+					master.setCurrentPos(mapPoint);
+					
+					if (Globals.useTrafficLights || Globals.useDynamicTrafficLights)
+						addTrafficLightApps(master);
+					continue;
+				}
+				if (keyword.equals("nodes")) {
+					while(st.hasMoreTokens()) {
+						Long nodeId = Long.parseLong(st.nextToken());
+						Long wayId = Long.parseLong(st.nextToken());
+						Node node = mobilityEngine.streetsGraph.get(wayId).getNode(nodeId);
+						master.addNode(node);
+					}
+				}
+				else {
+					if (st.countTokens() != 6)
+						continue;
+					// traffic light view line
+					Long wayId = Long.parseLong(keyword); 					/* way id */
+					Integer direction = Integer.parseInt(st.nextToken()); 	/* direction */
+					Double lat = Double.parseDouble(st.nextToken()); 		/* lat */
+					Double lon = Double.parseDouble(st.nextToken()); 		/* lon */
+					Integer seg = Integer.parseInt(st.nextToken()); 		/* segmentIndex */
+					Long cell = Long.parseLong(st.nextToken()); 			/* cellIndex */
+					String color = st.nextToken(); 							/* color */
+					MapPoint currentPoint = MapPoint.getMapPoint(lat, lon, 1, wayId);
+					currentPoint.segmentIndex = seg;
+					currentPoint.cellIndex = cell;
+					TrafficLightView view = new TrafficLightView(viewer.getMapJ(), currentPoint, wayId, direction);
+					view.setColor(color);
+					viewer.addMapMarker(currentPoint.lat, currentPoint.lon, view.getColor());
+					master.addTrafficLightView(view);
+				}
 			}
 			br.close();
 		} catch (IOException ex) {
@@ -220,7 +435,167 @@ public final class EngineUtils {
 				ex.printStackTrace();
 			}
 		}
-		return servers;
+		System.out.println(trafficLights.size());
+		return trafficLights;
+	}
+	
+	/***
+	 * 
+	 * @param inFile
+	 * @param outFile
+	 * @param viewer
+	 * @param mobilityEngine
+	 * @return
+	 */
+	private static TreeMap<Long,GeoTrafficLightMaster> readTrafficLights(
+			String inFile, String outFile, Viewer viewer, MobilityEngine mobilityEngine) {
+		
+		FileInputStream fstream = null;
+		TreeMap<Long,GeoTrafficLightMaster> trafficLights = new TreeMap<Long,GeoTrafficLightMaster>();
+		//if traffic lights were not loaded before, read them from the config
+		try {
+			fstream = new FileInputStream(inFile);
+			BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
+			String line;
+
+			/* read info data */
+			br.readLine();
+			/* Read data about traffic lights */
+			while ((line = br.readLine()) != null) {
+				logger.info(" We opened " + count + ". " + line);
+				
+				StringTokenizer st = new StringTokenizer(line, " ", false);
+				Long nodeId = Long.parseLong(st.nextToken()); /* node id */
+				Long wayId = Long.parseLong(st.nextToken()); /* way id" */
+				
+				Node node = mobilityEngine.streetsGraph.get(wayId).getNode(nodeId);
+				node.setWayId(wayId);
+				
+				Way way = mobilityEngine.getWay(wayId);
+				int noWaysNeigh = 0;
+				if (way.neighs.containsKey(node.id)) {
+					noWaysNeigh = way.neighs.get(node.id).size();
+				}
+				count++;
+				GeoTrafficLightMaster trafficLight = new GeoTrafficLightMaster(count, node, noWaysNeigh);
+				
+				MapPoint mapPoint = MapPoint.getMapPoint(node);
+				mapPoint.segmentIndex = mobilityEngine.getSegmentNumber(node);
+				
+				if (mapPoint.segmentIndex < mobilityEngine.getWay(wayId).nodes.size() - 1)
+					mapPoint.cellIndex = mobilityEngine.getCellIndex(node, mobilityEngine.streetsGraph.get(wayId).getNodeByIndex(mapPoint.segmentIndex + 1), mapPoint);
+				else {
+					if (mapPoint.segmentIndex <= 0)
+						mapPoint.segmentIndex = 1;
+					mapPoint.cellIndex = mobilityEngine.getCellIndex(mobilityEngine.streetsGraph.get(wayId).getNodeByIndex(mapPoint.segmentIndex - 1), node, mapPoint);
+				}
+				trafficLight.setCurrentPos(mapPoint);
+				trafficLights.put(trafficLight.getId(), trafficLight);
+				
+				
+				/* Create each network interface which is defined */
+				for( NetworkType type : Globals.activeNetInterfaces )
+				{
+					NetworkInterface netInterface = NetworkUtils.activateNetworkInterface(type, trafficLight);
+					trafficLight.addNetworkInterface(netInterface);
+				}
+				
+				/* Create each application which is defined for traffic light*/
+				if (Globals.useTrafficLights || Globals.useDynamicTrafficLights)
+					addTrafficLightApps(trafficLight);
+
+				//if another master traffic light exists
+				if (!viewer.addTrafficLightViews(trafficLight)) {
+					trafficLights.remove(trafficLight.getId());
+				}
+			}
+			br.close();
+			
+			//write the traffic lights to file for further runs
+			writeToFileTrafficLights(outFile, trafficLights);
+			
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				fstream.close();
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
+		}
+		return trafficLights;
+	}
+	
+	/***
+	 * Return a list of master traffic lights from traces file or from previous runs.
+	 * @param trafficLightListFilename - traffic lights from traces and osm map
+	 * @param trafficLightsLoaded - traffic lights from previous runs
+	 * @param viewer
+	 * @param mobilityEngine
+	 * @return
+	 */
+	static TreeMap<Long,GeoTrafficLightMaster> getTrafficLights(String trafficLightListFilename,
+			String trafficLightsLoaded, Viewer viewer, MobilityEngine mobilityEngine) {
+
+		/* check if file with traffic lights exists */
+		File file = new File(trafficLightsLoaded);
+		if (file.exists() && !file.isDirectory()) {
+			/* read the traffic lights configuration from here */
+			return readExistingTrafficLights(trafficLightsLoaded, viewer, mobilityEngine);
+		}
+		return readTrafficLights(trafficLightListFilename, trafficLightsLoaded, viewer, mobilityEngine);
+	}
+	
+	
+	/***
+	 * Write traffic lights configuration to output file for further runs
+	 * @param trafficLightListFilename
+	 * @param trafficLights
+	 */
+	private static void writeToFileTrafficLights(
+			String trafficLightListFilename, TreeMap<Long,GeoTrafficLightMaster> trafficLights) {
+		
+		FileOutputStream fstream = null;
+		try {
+			fstream = new FileOutputStream(trafficLightListFilename);
+			Writer br = new BufferedWriter(new OutputStreamWriter(fstream));
+			
+			//Format: master id idNode wayidNode latNote lonNode \n";
+			// 		  wayId direction lat lon segmentIndex cellIndex color
+			
+			String line = "";
+			for (GeoTrafficLightMaster tlm : trafficLights.values()) {
+				line += "master " + tlm.getId() + " " + tlm.getNode().id + " " + tlm.getNode().wayId + " " 
+							+ tlm.getNode().lat + " " + tlm.getNode().lon;
+				br.write(line);
+				br.write(System.lineSeparator());
+				line = "nodes";
+				for (Node node : tlm.getNodes()) {
+					line += " " + node.id + " " + node.wayId;
+				}
+				br.write(line);
+				br.write(System.lineSeparator());
+				line = "";
+				for (TrafficLightView tlv : tlm.getTrafficLights()) {
+					line += tlv.getWayId() + " " + tlv.getDirection() + " "
+							+ tlv.getCurrentPoint().lat + " " + tlv.getCurrentPoint().lon + " " 
+							+ tlv.getCurrentPoint().segmentIndex + " " + tlv.getCurrentPoint().cellIndex + " "
+							+ tlv.getColorString();
+					br.write(line);
+					br.write(System.lineSeparator());
+					line = "";
+				}
+			}
+			br.close();	
+		}
+		catch (IOException ex){}
+		finally {
+				try {
+					fstream.close();
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				}
+			}
 	}
 	
 	
@@ -378,47 +753,72 @@ public final class EngineUtils {
 		return PRGraph;
 	}
 
+	/* Discover the closest 3 traffic light masters */
+	public static GeoTrafficLightMaster discoverClosestTrafficLightMaster(double lat, double lon) {
+
+		ArrayList<GeoTrafficLightMaster> mtl = (ArrayList<GeoTrafficLightMaster>) 
+				SimulationEngine.getInstance().getMasterTrafficLights();
+		
+		GeoTrafficLightMaster mtlInRange = mtl.get(0);
+		
+		double maxDist = Utils.distance(lat, lon,
+				mtlInRange.getCurrentPos().lat, mtlInRange.getCurrentPos().lon);
+
+		double dist = 0;
+
+		for (int i = 0; i < mtl.size(); i++) {
+			GeoTrafficLightMaster s = mtl.get(i);
+			dist = Utils.distance(lat, lon,
+					s.getCurrentPos().lat, s.getCurrentPos().lon);
+			if (dist < RoutingApplicationParameters.distMax && dist < maxDist) {
+					maxDist = dist;
+					mtlInRange = s;
+			}
+		}
+
+		return mtlInRange;
+	}
 	/**
 	 * Just for testing...
 	 * @param args
 	 * @throws InterruptedException
 	 */
-	public static void main(String[] args) throws InterruptedException {
-		long microseconds, end, start = System.nanoTime();
-		
+//	public static void main(String[] args) throws InterruptedException {
+//		long microseconds, end, start = System.nanoTime();
+//		
+////		TreeMap<Long, Way> graph = EngineUtils.loadGraph(
+////				"res\\Xml\\streets_rez_san-francisco.osm",
+////				"res\\Xml\\streets_graph_san-francisco.osm");
 //		TreeMap<Long, Way> graph = EngineUtils.loadGraph(
-//				"res\\Xml\\streets_rez_san-francisco.osm",
-//				"res\\Xml\\streets_graph_san-francisco.osm");
-		TreeMap<Long, Way> graph = EngineUtils.loadGraph(
-				"res\\XmlBeijing\\streets_rez_beijing.osm",
-				"res\\XmlBeijing\\streets_graph_beijing.osm");
-		end = System.nanoTime();
-		microseconds = (end - start) / 1000;
-		logger.info("graph loaded in " + microseconds / 1000.0 + " milliseconds");
-		Thread.sleep(2000);
-		
-		start = System.nanoTime();
-		/* Generate peano keys for each road */
-		ArrayList<PeanoKey> peanoKeys = new ArrayList<PeanoKey>();
-		SphericalMercator mercator = new SphericalMercator();
-		for (Way w : graph.values()) {
-			peanoKeys.addAll(w.buildPeanoKeys(mercator));
-		}
-		end = System.nanoTime();
-		microseconds = (end - start) / 1000;
-		logger.info("PeanoKeys built in " + microseconds / 1000.0 + " milliseconds");
-		Thread.sleep(2000);
-		
-		
-		start = System.nanoTime();
-		/* sort the PeanoKey vector */
-		Collections.sort(peanoKeys);
-		end = System.nanoTime();
-		microseconds = (end - start) / 1000;
-		logger.info("PeanoKeys sorted in " + microseconds / 1000.0 + " milliseconds");
-		Thread.sleep(2000);
-		
-		
-		logger.info(peanoKeys.size() + " PeanoKeys generated");
-	}
+//				"res\\XmlBeijing\\streets_rez_beijing.osm",
+//				"res\\XmlBeijing\\streets_graph_beijing.osm");
+//		end = System.nanoTime();
+//		microseconds = (end - start) / 1000;
+//		logger.info("graph loaded in " + microseconds / 1000.0 + " milliseconds");
+//		Thread.sleep(2000);
+//		
+//		start = System.nanoTime();
+//		/* Generate peano keys for each road */
+//		ArrayList<PeanoKey> peanoKeys = new ArrayList<PeanoKey>();
+//		SphericalMercator mercator = new SphericalMercator();
+//		for (Way w : graph.values()) {
+//			peanoKeys.addAll(w.buildPeanoKeys(mercator));
+//		}
+//		end = System.nanoTime();
+//		microseconds = (end - start) / 1000;
+//		logger.info("PeanoKeys built in " + microseconds / 1000.0 + " milliseconds");
+//		Thread.sleep(2000);
+//		
+//		
+//		start = System.nanoTime();
+//		/* sort the PeanoKey vector */
+//		Collections.sort(peanoKeys);
+//		end = System.nanoTime();
+//		microseconds = (end - start) / 1000;
+//		logger.info("PeanoKeys sorted in " + microseconds / 1000.0 + " milliseconds");
+//		Thread.sleep(2000);
+//		
+//		
+//		logger.info(peanoKeys.size() + " PeanoKeys generated");
+//	}
 }
