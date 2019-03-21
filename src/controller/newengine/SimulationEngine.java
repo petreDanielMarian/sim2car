@@ -109,11 +109,11 @@ public class SimulationEngine implements EngineInterface {
 					getMapConfig().getTrafficLightsLoaded(), viewer, mobilityEngine));
 		}
 			
-		for (Entity e : entities.values()) {
+		/*for (Entity e : entities.values()) {
 			if (e instanceof GeoServer) {
 				EngineUtils.addApplicationToServer((GeoServer) e);
 			}
-		}	
+		}*/	
 		
 		simulation = new Runnable() {
 			
@@ -145,7 +145,7 @@ public class SimulationEngine implements EngineInterface {
 					for (Entity e : entities.values()) {
 						if (e instanceof GeoServer) {
 							//streetData.append(((GeoCar) e).runApplications());
-							threadPool.submit(new ServerApplicationsRun((GeoServer) e));
+							//threadPool.submit(new ServerApplicationsRun((GeoServer) e));
 						}
 						if (e instanceof GeoCar && ((GeoCar) e).getActive() == 1) {
 							threadPool.submit(new CarApplicationsRun((GeoCar) e));

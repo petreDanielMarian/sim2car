@@ -98,7 +98,7 @@ public class Globals {
 	public static boolean useDynamicTrafficLights = false;
 	
 	@Parameter(names = {"--carIdFuelStatistics"}, description = "The car id used to retrieve fuel consumption statistics.")
-    public static long carIdFuelStatistics = -1;
+    public static long carIdFuelStatistics = 10;
 	
 	/**
 	 * Proxy usage from commandline

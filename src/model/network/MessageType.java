@@ -12,6 +12,7 @@ public enum MessageType {
 	NEW_ROUTE_UPDATE,
 	UNKNOWN,
 	SERVER_UPDATE,
+	FUEL_UPDATE,
 	/* Used by TrafficLightControlApplication */
 	ADD_WAITING_QUEUE,
 	REMOVE_WAITING_QUEUE,

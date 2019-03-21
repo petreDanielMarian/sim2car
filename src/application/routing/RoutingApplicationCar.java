@@ -15,6 +15,7 @@ import controller.network.NetworkInterface;
 import controller.network.NetworkType;
 import controller.network.NetworkWiFi;
 import controller.newengine.SimulationEngine;
+import utils.ComputeAverageFuelConsumption;
 import utils.tracestool.Utils;
 import utils.tracestool.algorithms.OSMGraph;
 import utils.tracestool.parameters.GenericParams;
@@ -104,6 +105,34 @@ public class RoutingApplicationCar extends Application {
 		//		 }
 
 	}
+	
+	/***
+	 * Sets the speed, acceleration and instant fuel consumption
+	 */
+	private void computeInstantFuelConsumption() {
+		if (!car.isReachDestination()) {
+			if (car.oldSpeed == car.speed)
+				car.acceleration = 0;
+			
+			/* For computing average fuel consumption */
+			long deltaTime = SimulationEngine.getInstance().getSimulationTime() - car.lastTime;
+			/* Compute instant fuel consumption [mL] */
+			double instantFuelConsumtion = ComputeAverageFuelConsumption.computeFuel(car.speed, car.acceleration);
+			double fuelConsumption = instantFuelConsumtion * deltaTime;
+	
+			car.fuelFromStart += fuelConsumption;
+			
+			/* For full fuel consumption statistics - only for one car */
+			if (Globals.carIdFuelStatistics == car.getId()) {
+				String value = car.speed + " " + car.acceleration + " " + SimulationEngine.getInstance().getSimulationTime() + " " + 
+							instantFuelConsumtion * 3.6 + " ";
+				carSpeed.add(value);
+			}
+			
+			car.lastTime = SimulationEngine.getInstance().getSimulationTime();
+			car.oldSpeed = car.speed;
+		}
+	}
 
 	public Node lastIntersection = null;
 	public Long lastStreet = -1l;
@@ -131,6 +160,7 @@ public class RoutingApplicationCar extends Application {
 
 		/* IF the car has a position so it's running */
 		if(car.getCurrentPos() != null) {
+			computeInstantFuelConsumption();
 			//			g = streetCongestionD.get(car.getCurrentPos().wayId);
 			//			streetCongestionD.put(car.getCurrentPos().wayId, g == null ? car.getCongestionDegree(): (car.getCongestionDegree() + g)/2);
 			MapPoint crtPos = car.getCurrentPos();
@@ -290,10 +320,31 @@ public class RoutingApplicationCar extends Application {
 				}
 			}
 		}
+		
+	}
+	
+	/***
+	 * Sets simulation time, real time in seconds, avg speed
+	 */
+	public void setTimeReachDestination() {
+		String value;
+		
+		if (this.car.isReachDestination()) {
+			value = String.valueOf(car.timeReachDest - car.startTime);
+			
+			// [km/h]
+			double avgSpeed = (car.distanceFromStart / (car.timeReachDest - car.startTime))
+					*3.6;
+			double avgFuelConsumption = ComputeAverageFuelConsumption.computeAverageFuelConsumption(car.fuelFromStart, 
+					(car.timeReachDest - car.startTime));
+			value += " " + avgSpeed + " " + avgFuelConsumption;		
+			timeReachDestination.put(car.getId(), value);
+		}
 	}
 
 	@Override
 	public String stop() {
+		setTimeReachDestination();
 		return null;
 	}
 	
