@@ -21,6 +21,8 @@ import utils.tracestool.traces.TraceNode;
 
 /**
  * Class to represent a street.
+ * It is comprised of queues for each way of the road.
+ * And each queue has cells in which one car may be!
  */
 public class Way {
 

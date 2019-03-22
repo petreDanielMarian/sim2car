@@ -47,8 +47,22 @@ public class Globals {
 	public static int debug = 0;
 	
 	@Parameter(names = {"--carsCount"}, description = "The number of cars simulated.")
-    public static int carsCount = 50;
+    public static int carsCount = 150;
+	
+	@Parameter(names = {"--maxWaitingTime"}, description = "The maximum simulation time a car can wait at a traffic light.")
+    public static int maxWaitingTime = 120;
 
+	@Parameter(names = {"--normalTrafficLightTime"}, description = "The normal amount of time a traffic light is green or red.")
+    public static int normalTrafficLightTime = 30;
+	
+	@Parameter(names = {"--minTrafficLightTime"}, description = "The minimum amount of time a traffic light is green or red.")
+    public static int minTrafficLightTime = 15;
+	
+	@Parameter(names = {"--maxTrafficLightTime"}, description = "The maximum amount of time a traffic light can be green or red.")
+    public static int maxTrafficLightTime = 90;
+	
+	@Parameter(names = {"--passIntersectionTime"}, description = "The time needed by a car to pass the intersection.")
+    public static int passIntersectionTime = 3;
 	
 	@Parameter(names = {"--loadGraph"}, description = "Activate the loading graph.", arity = 1)
     public static boolean loadGraph = false;
@@ -76,6 +90,15 @@ public class Globals {
 	 
 	@Parameter(names = {"--useTreadPool"}, description = "If true, use the treadpool")
 	public static boolean useTreadPool = true;
+	
+	@Parameter(names = {"--useTrafficLights"}, description = "If true, use traffic lights")
+	public static boolean useTrafficLights = false;
+	
+	@Parameter(names = {"--useDynamicTrafficLights"}, description = "If true, use traffic lights")
+	public static boolean useDynamicTrafficLights = false;
+	
+	@Parameter(names = {"--carIdFuelStatistics"}, description = "The car id used to retrieve fuel consumption statistics.")
+    public static long carIdFuelStatistics = 10;
 	
 	/**
 	 * Proxy usage from commandline
@@ -114,10 +137,10 @@ public class Globals {
 	
 	public static long maxIterations = 2;
 
-	@Parameter(names = {"--activeApps"}, description = "the accepted values ROUTING,TILES,STREET_VISITS."
+	@Parameter(names = {"--activeApps"}, description = "the accepted values ROUTING,TILES,STREET_VISITS,TRAFFIC_LIGHT_CONTROL."
 													 + "Please see ApplicationType for more details\n."
 													 + "Multiple applications can be passed using --activeApps=app1,app2,app3,..,appn")
-	public static String activeApps = "ROUTING";
+	public static String activeApps = "ROUTING,TRAFFIC_LIGHT_CONTROL";
 	/* The default application is ROUTING_APP */
 	public static Vector<ApplicationType> activeApplications;
 

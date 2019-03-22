@@ -21,7 +21,8 @@ public class Main {
 	static EngineInterface simulator;
 	
 	public static void main(String[] args) {
-				
+		
+		/* Read the simulators configuration file */
 		try {
 			FileInputStream fis =  new FileInputStream("src/configurations/logging.properties");
 			 LogManager.getLogManager().readConfiguration(fis);
@@ -32,7 +33,8 @@ public class Main {
 		 }
 		
 		Main.args = args;
-
+		
+		/* Activates all the designated parameters for the simulator to be run with */
 		Globals.setUp( args );
 		if (Globals.propertiesFile == null) {
 			// use -prop src\configurations\simulator\rome.properties for e.g.

@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 import model.Entity;
 import model.GeoCar;
 import model.GeoServer;
+import model.GeoTrafficLightMaster;
 import model.MapPoint;
 import model.PixelLocation;
 import model.OSMgraph.Way;
@@ -158,7 +159,7 @@ public class EngineSimulation implements EngineInterface {
 			ServerView servView = new ServerView(mapConfig.getN(),
 					mapConfig.getM(), servs, mapJ);
 			view = new View(mapConfig.getN(), mapConfig.getM(), mapJ,
-					servView, carsView);
+					servView, carsView, null);
 		}
 
 		animate = new Animation(this);
@@ -494,5 +495,11 @@ public class EngineSimulation implements EngineInterface {
 	public MapConfig getMapConfig()
 	{
 		return mapConfig;
+	}
+
+	@Override
+	public List<GeoTrafficLightMaster> getMasterTrafficLights() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

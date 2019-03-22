@@ -2,7 +2,7 @@ package controller.network;
 
 import java.util.Vector;
 
-import model.GeoCar;
+import model.Entity;
 import model.parameters.Globals;
 
 public class NetworkUtils {
@@ -13,11 +13,11 @@ public class NetworkUtils {
 	 * @param car - Car object
 	 * @return
 	 */
-	public static NetworkInterface activateNetworkInterface( NetworkType type, GeoCar car)
+	public static NetworkInterface activateNetworkInterface( NetworkType type, Entity entity)
 	{
 		switch (type) {
 			case Net_WiFi:
-				return new NetworkWiFi(car);
+				return new NetworkWiFi(entity);
 		default:
 			return null;
 		}

@@ -1,10 +1,15 @@
 package application.routing;
 
 import java.io.Serializable;
-
 import model.GeoCarRoute;
 import model.MapPoint;
+import utils.Pair;
 
+/**
+ * This class is used to represent the routing app data which is send from the car to the server
+ * @author Alex
+ *
+ */
 public class RoutingApplicationData implements Serializable {
 	
 	/* Routing applications states */
@@ -19,6 +24,7 @@ public class RoutingApplicationData implements Serializable {
 		RUN_USING_CONG_PR_BC,
 		UNKNOWN
 	};
+	
 	private static final long serialVersionUID = 1L;
 	public String msg;
 	public double congestion;
@@ -27,9 +33,11 @@ public class RoutingApplicationData implements Serializable {
 	public double avgspeed = 0;
 	public MapPoint startRoutePoint, endRoutePoint;
 	GeoCarRoute route = null;
+	private Pair<Long,Long> p = null;
+	private RoutingRoadCost c = null;
+
 	
-	public RoutingApplicationData(String msg, double congestion, long prevStreet, long nextStreet, long jointId, long timestamp) {
-		
+	public RoutingApplicationData(String msg, double congestion, long prevStreet, long nextStreet, long jointId, long timestamp) {		
 		this.msg = msg;
 		this.congestion = congestion;
 		this.prevStreet = prevStreet;
@@ -38,14 +46,12 @@ public class RoutingApplicationData implements Serializable {
 		this.timestamp = timestamp;
 	}
 
-	public void setStartEndpoint( MapPoint startPoint, MapPoint endPoint )
-	{
+	public void setStartEndpoint( MapPoint startPoint, MapPoint endPoint ) {
 		startRoutePoint = startPoint;
 		endRoutePoint = endPoint;
 	}
 
-	public void setNewRoute( GeoCarRoute route )
-	{
+	public void setNewRoute( GeoCarRoute route ) {
 		this.route = route;
 	}
 	
@@ -57,5 +63,21 @@ public class RoutingApplicationData implements Serializable {
 			   this.nextStreet == a.nextStreet &&
 			   this.jointId == a.jointId && 
 			   this.msg.compareTo(a.msg) == 0;	
+	}
+
+	public Pair<Long,Long> getP() {
+		return p;
+	}
+
+	public void setP(Pair<Long,Long> p) {
+		this.p = p;
+	}
+
+	public RoutingRoadCost getC() {
+		return c;
+	}
+
+	public void setC(RoutingRoadCost c) {
+		this.c = c;
 	}
 }

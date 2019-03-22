@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 
 import utils.Pair;
 import utils.tracestool.Utils;
+import controller.engine.EngineInterface;
 import controller.engine.EngineSimulation;
 import controller.network.NetworkInterface;
 import controller.network.NetworkType;
@@ -18,6 +19,7 @@ import controller.newengine.SimulationEngine;
 import application.Application;
 import application.ApplicationType;
 import application.routing.RoutingApplicationData.RoutingApplicationState;
+import model.Entity;
 import model.GeoCarRoute;
 import model.GeoServer;
 import model.MapPoint;
@@ -27,6 +29,13 @@ import model.mobility.MobilityEngine;
 import model.network.Message;
 import model.network.MessageType;
 
+/**
+ * This class is used to represent the server functionality
+ * It receives messages from the car and other servers
+ * Updates it's zone map with costs and responds to new route requests
+ * @author Alex
+ *
+ */
 public class RoutingApplicationServer extends Application{
 
 	private final static Logger logger = Logger.getLogger(RoutingApplicationServer.class.getName());
@@ -45,7 +54,7 @@ public class RoutingApplicationServer extends Application{
 	private ApplicationType type = ApplicationType.ROUTING_APP;
 
 	public TreeMap<Long,Double> streetsAVGSpeed = new TreeMap<Long,Double>();
-
+	
 	/* The graph for Server area costs */
 	public TreeMap<Long, TreeMap<Pair<Long,Long>,RoutingRoadCost>> areaCostsGraph = new TreeMap<Long, TreeMap<Pair<Long,Long>,RoutingRoadCost>>();
 
@@ -55,7 +64,9 @@ public class RoutingApplicationServer extends Application{
 	public RoutingApplicationServer(GeoServer serv) {
 		this.serv = serv;
 		initializeStreetsCostGraph();
+
 	}
+
 	public void printStreetsCostGraph(String filename)
 	{
 		try {
@@ -67,14 +78,14 @@ public class RoutingApplicationServer extends Application{
 				{
 					wr.write( streetId + "->" + c.getKey() + ": " + String.format("%.10f",c.getValue().cost) + "\n" );
 				}
-				
+
 			}
 			wr.flush();
 			wr.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 	}
 
 	public void printStreetsAVGSpeed(String filename)
@@ -91,7 +102,7 @@ public class RoutingApplicationServer extends Application{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 	}
 
 	@Override
@@ -99,9 +110,11 @@ public class RoutingApplicationServer extends Application{
 		return false;
 	}
 
+	/* When it runs the server only send the messages it has in queue or the regular zone updates */
 	@Override
 	public String run() {
 		NetworkInterface net = serv.getNetworkInterface(NetworkType.Net_WiFi);
+		sendWayCosts();
 		net.processOutputQueue();
 		if( RoutingApplicationParameters.routingapp_debug )
 		{
@@ -114,6 +127,58 @@ public class RoutingApplicationServer extends Application{
 		}
 		return "";
 	}
+
+	long basePar = 500L;
+	long baseImpar = 400L;
+	/* Sends the information regarding road costs to all the neighbor servers
+	 * The streets are only those of interest for the neighbor so not all streets from a server zone are send to
+	 * it's neighbors*/
+	private void sendWayCosts() {
+		if (this.serv.getId() % 2 == 0) {
+			if (SimulationEngine.getInstance().getSimulationTime() == basePar) {
+				basePar += 500;
+				for (Long neighId : serv.neighServers) {
+					for (Map.Entry<Long, TreeMap<Pair<Long,Long>,RoutingRoadCost>> entry : areaCostsGraph.entrySet()) {
+						Long prevStreet = entry.getKey();
+						for (Map.Entry<Pair<Long,Long>,RoutingRoadCost> entry2 : entry.getValue().entrySet()) {
+							if (entry2.getValue().commonServers.contains(neighId)) {
+								Message m = new Message(serv.getId(), neighId, null, MessageType.SERVER_UPDATE, ApplicationType.ROUTING_APP);
+								RoutingApplicationData data = new RoutingApplicationData( "Road Info from: " + serv.getId(),
+										0, prevStreet, -1, -1,
+										SimulationEngine.getInstance().getSimulationTime());
+								data.setC(entry2.getValue());
+								data.setP(entry2.getKey());
+								m.setPayload(data);
+								this.serv.getNetworkInterface(NetworkType.Net_WiFi).putMessage(m);
+							}
+						}
+					}
+				}
+			}
+		} else {
+			if (SimulationEngine.getInstance().getSimulationTime() == baseImpar) {
+				baseImpar += 400;
+				for (Long neighId : serv.neighServers) {
+					for (Map.Entry<Long, TreeMap<Pair<Long,Long>,RoutingRoadCost>> entry : areaCostsGraph.entrySet()) {
+						Long prevStreet = entry.getKey();
+						for (Map.Entry<Pair<Long,Long>,RoutingRoadCost> entry2 : entry.getValue().entrySet()) {
+							if (entry2.getValue().commonServers.contains(neighId)) {
+								Message m = new Message(serv.getId(), neighId, null, MessageType.SERVER_UPDATE, ApplicationType.ROUTING_APP);
+								RoutingApplicationData data = new RoutingApplicationData( "Road Info from: " + serv.getId(),
+										0, prevStreet, -1, -1,
+										SimulationEngine.getInstance().getSimulationTime());
+								data.setC(entry2.getValue());
+								data.setP(entry2.getKey());
+								m.setPayload(data);
+								this.serv.getNetworkInterface(NetworkType.Net_WiFi).putMessage(m);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	@Override
 	public String stop(){
 		return null;
@@ -146,8 +211,27 @@ public class RoutingApplicationServer extends Application{
 
 		RoutingApplicationData data = (RoutingApplicationData)m.getPayload();
 
+		// Update server info with info from neighbor servers.
+		if (m.getType() == MessageType.SERVER_UPDATE) {
+			TreeMap<Pair<Long,Long>, RoutingRoadCost> costs = areaCostsGraph.get(data.prevStreet);
+
+			/* IF we dnt have the cost we add it */
+			if (costs.get(data.getP()) == null) {
+				costs.put(data.getP(), data.getC());
+				System.out.println("add");
+			} else if (costs.get(data.getP()).time > data.getC().time) {
+				costs.put(data.getP(), data.getC());
+				//System.out.println("update");
+			}
+
+			areaCostsGraph.put(data.prevStreet, costs);
+			return;
+		}
+
 		//System.out.println("The message received type is " + m.getType() + " from " + m.getSourceId() + "   "+((RoutingApplicationData)m.getPayload()).congestion );
 		NetworkInterface net = serv.getNetworkInterface(NetworkType.Net_WiFi);
+
+		/* Cars always send the costs of the streets but the update route is only computed after simulation 1800 seconds */
 		if( SimulationEngine.getInstance().getSimulationTime() / RoutingApplicationParameters.SamplingInterval < 1 )
 		{
 			msgType = MessageType.NO_ROUTE_UPDATE;
@@ -159,22 +243,25 @@ public class RoutingApplicationServer extends Application{
 
 		reply = new Message(serv.getId(), m.getSourceId(), null, msgType, ApplicationType.ROUTING_APP);
 
+		// Update the costs with the ifo from the car
 		if( m.getType() == MessageType.REQUEST_ROUTE_UPDATE || m.getType() == MessageType.COST_ROAD_UPDATE )
 		{
-			
+
 			TreeMap<Pair<Long,Long>, RoutingRoadCost> costs = areaCostsGraph.get(data.prevStreet);
 			if( costs == null )
 			{
-				logger.info( "Street " + data.prevStreet + " is not available on current area graph \n");
+				System.out.println("Street " + data.prevStreet + " is not available on current area graph \n");
 				return;
 			}
+
 			RoutingRoadCost localCost = costs.get(new Pair<Long,Long>(data.jointId, data.nextStreet));
 			if( localCost == null )
 			{
-				System.out.println( 
-							 "Street " + data.prevStreet + " is not linked with street " + data.nextStreet +
-							 " via joinction " + data.jointId
-							);
+				//				System.out.println( "SERVER " + serv.getId() + " " +
+				//							 "Street " + data.prevStreet + " is not linked with street " + data.nextStreet +
+				//							 " via joinction " + data.jointId
+				//							);
+
 
 				if( data.avgspeed != 0 && data.avgspeed < 36)
 				{
@@ -194,13 +281,13 @@ public class RoutingApplicationServer extends Application{
 				{
 					c = p.getValue().updateStreetCost(data.congestion, data.timestamp);
 					costs.put(p.getKey(), p.getValue());
-					
+
 				}
 			}
 			else
 			{
-			c = localCost.updateStreetCost(data.congestion, data.timestamp);
-			costs.put(new Pair<Long,Long>(data.jointId, data.nextStreet), localCost);
+				c = localCost.updateStreetCost(data.congestion, data.timestamp);
+				costs.put(new Pair<Long,Long>(data.jointId, data.nextStreet), localCost);
 			}
 			areaCostsGraph.put(data.prevStreet, costs);
 
@@ -221,19 +308,28 @@ public class RoutingApplicationServer extends Application{
 			if( RoutingApplicationParameters.state == RoutingApplicationState.COST_COLLECTING )
 				return;
 		}
+		// IF time < 1800 we accept only updates
 		if( msgType == MessageType.NO_ROUTE_UPDATE )
 			return;
-	
 
-		Long round = stRound.get(data.startRoutePoint.wayId);
-		if( round == null )
-			return;
-		round = (round + 1) % Long.MAX_VALUE;
-		stRound.put(data.startRoutePoint.wayId, round);
-		if( round % 2 == 0 )
-		{
+
+		/* get destination Entity */
+		EngineInterface engine = SimulationEngine.getInstance();
+		/* Maintain backward compatibility with old simulator */
+		Entity destEntity = engine != null ? ((SimulationEngine)engine).getEntityById(m.getSourceId()): 
+			EngineSimulation.getInstance().getCarById((int)m.getSourceId());
+
+		if (Utils.distance(serv.getCurrentPos().lat, serv.getCurrentPos().lon,
+				destEntity.getCurrentPos().lat, destEntity.getCurrentPos().lon) > RoutingApplicationParameters.distMax) {
+			System.out.println("Car " + destEntity.getId() + "has no server in range");
 			return;
 		}
+
+//		String x = null;
+//		
+//		if (x == null)
+//			return;
+		/* Compute new route for car*/
 		if( m.getType() == MessageType.REQUEST_ROUTE_UPDATE )
 		{
 			GeoCarRoute newroute = null;
@@ -241,10 +337,10 @@ public class RoutingApplicationServer extends Application{
 			if( data.startRoutePoint != null & data.startRoutePoint != null )
 			{
 				MapPoint endPoint = intersectionsList.size() > 3 * RoutingApplicationParameters.maxdepth/4 ? 
-									MapPoint.getMapPoint( intersectionsList.get(3*RoutingApplicationParameters.maxdepth/4)):
-									data.route.getEndPoint();
-				newroute = MobilityEngine.getInstance().FindPath( MobilityEngine.getInstance().streetsGraph, data.startRoutePoint, endPoint, RoutingApplicationParameters.maxdepth, areaCostsGraph );
-				//System.out.println(data.startRoutePoint +" " + data.route.getEndPoint() +" "+ m.getSourceId() + " " +newroute);
+						MapPoint.getMapPoint( intersectionsList.get(3*RoutingApplicationParameters.maxdepth/4)):
+							data.route.getEndPoint();
+						newroute = MobilityEngine.getInstance().FindPath( MobilityEngine.getInstance().streetsGraph, data.startRoutePoint, endPoint, RoutingApplicationParameters.maxdepth, areaCostsGraph );
+						//System.out.println(data.startRoutePoint +" " + data.route.getEndPoint() +" "+ m.getSourceId() + " " +newroute);
 			}
 			if( newroute == null )
 				return;
@@ -270,35 +366,37 @@ public class RoutingApplicationServer extends Application{
 
 		}
 	}
+
 	public void setGridSize(long rows, long cols)
 	{
 		this.rows = rows;
 		this.cols = cols;
 	}
+
 	public long getRowsNumber()
 	{
 		return rows;
 	}
+
 	public long getColsNumber()
 	{
 		return cols;
 	}
+
 	public void setServerAreaSizes( double latEdge, double lonEdge )
 	{
 		this.latEdge = latEdge;
 		this.lonEdge = lonEdge;
 	}
-	public void initializeStreetsCostGraph()
-	{
+
+	public void initializeStreetsCostGraph() {
 
 		TreeMap<Long, Way> streetsGraph = MobilityEngine.getInstance().streetsGraph;
 		/* iterate over each street and detect the output */
-		for( Long streetID:streetsGraph.keySet() )
-		{
+		for( Long streetID:streetsGraph.keySet() ) {
 			Way tmpSt = streetsGraph.get(streetID);
 
-			if( tmpSt == null )
-			{
+			if( tmpSt == null ) {
 				logger.info( streetID + "there is not presented in the graph of Streets \n");
 				continue;
 			}
@@ -308,14 +406,22 @@ public class RoutingApplicationServer extends Application{
 
 			TreeMap<Pair<Long,Long>,RoutingRoadCost> costs = new TreeMap<Pair<Long,Long>,RoutingRoadCost>();
 
-			for( Pair<Long,Long> n : outstreetsIDs)
-			{
-				/* TODO: Enable this condition when multi-area servers feature will be
-				 * activated.
-				 *
-				 * if( belongToCrtArea(streetsGraph, n))
-				*/
-				costs.put(n, new RoutingRoadCost());
+			for( Pair<Long,Long> n : outstreetsIDs) {
+				if( belongToCrtArea(streetsGraph, n, this.serv)) {
+					RoutingRoadCost c = new RoutingRoadCost();
+					// Add myself as common
+					c.commonServers.add(this.serv.getId());
+					// Add neighbors as common
+					//System.out.println("aici");
+					for (Long neighId : this.serv.neighServers) {
+						GeoServer s = (GeoServer) SimulationEngine.getInstance().getEntityById(neighId); 
+						if (s != null && belongToCrtArea(streetsGraph, n, s)) {
+							c.commonServers.add(s.getId());
+						}
+					}
+
+					costs.put(n, c);
+				}
 			}
 
 			areaCostsGraph.put( tmpSt.id, costs);
@@ -324,50 +430,40 @@ public class RoutingApplicationServer extends Application{
 	}
 
 	/* These functions should be used when there are multiple servers */
-	public boolean belongToCrtArea( TreeMap<Long, Way> streetsGraph, Pair<Long,Long> n )
-	{
-		double latmin = 0d, latmax = 0d, lonmin = 0d, lonmax = 0d;
+	/* Checks if a way is part of the server area */
+	public boolean belongToCrtArea( TreeMap<Long, Way> streetsGraph, Pair<Long,Long> n, GeoServer serve) {
 		Way street = streetsGraph.get(n.getSecond());
-
-		if( street.oneway )
-			return true;
-
 		Node nd = street.getNode(n.getFirst());
 
-		MapPoint mp = serv.getCurrentPos();
-		latmin = mp.lat - latEdge/2;
-		latmax = mp.lat + latEdge/2;
+		MapPoint mp = serve.getCurrentPos();
 
-		lonmin = mp.lon - lonEdge/2;
-		lonmax = mp.lon + lonEdge/2;
+		if (nd == null)
+			return false;
 
-		if( latmin <= nd.lat && nd.lat <= latmax )
-		{
-			if( lonmin <= nd.lon && nd.lon <= lonmax )
-				return true;
+		if (Utils.distance(mp.lat, mp.lon, nd.lat, nd.lon) <= RoutingApplicationParameters.distMax) {
+			return true;
 		}
 
-		/* left edge */
-		Node prj = Utils.getOSMProjection( nd, new Node(-1, latmin, lonmin), new Node(-1, latmin, lonmax) );
-		if( Utils.distance(nd.lat, nd.lon, prj.lat, prj.lon) < RoutingApplicationParameters.distMax )
-			return true;
+		return false;
+	}
 
-		/* right edge */
-		prj = Utils.getOSMProjection( nd, new Node(-1, latmax, lonmin), new Node(-1, latmax, lonmax) );
-		if( Utils.distance(nd.lat, nd.lon, prj.lat, prj.lon) < RoutingApplicationParameters.distMax )
-			return true;
+	/* These functions should be used when there are multiple servers */
+	public boolean wayBelongHere(Way street) {
 
-		/* top edge */
-		prj = Utils.getOSMProjection( nd, new Node(-1, latmin, lonmin), new Node(-1, latmax, lonmin) );
-		if( Utils.distance(nd.lat, nd.lon, prj.lat, prj.lon) < RoutingApplicationParameters.distMax )
-			return true;
+		if (street.nodes == null || street.nodes.size() == 0)
+			return false;
 
-		/* bottom edge */
-		prj = Utils.getOSMProjection( nd, new Node(-1, latmax, lonmin), new Node(-1, latmax, lonmax) );
-		if( Utils.distance(nd.lat, nd.lon, prj.lat, prj.lon) < RoutingApplicationParameters.distMax )
+		Node nd = street.nodes.get(0);
+
+		MapPoint mp = serv.getCurrentPos();
+
+		if (nd == null)
+			return false;
+
+		if (Utils.distance(mp.lat, mp.lon, nd.lat, nd.lon) <= RoutingApplicationParameters.distMax) {
 			return true;
+		}
 
 		return false;
 	}
 }
-

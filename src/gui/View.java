@@ -7,6 +7,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -19,9 +20,17 @@ import javax.swing.SwingUtilities;
 
 import model.GeoCar;
 import model.GeoServer;
+import model.GeoTrafficLightMaster;
+import model.MapPoint;
+import model.OSMgraph.Node;
+import model.OSMgraph.Way;
+import model.mobility.MobilityEngine;
+import utils.tracestool.Utils;
 
+import org.openstreetmap.gui.jmapviewer.Coordinate;
 import org.openstreetmap.gui.jmapviewer.JMapViewer;
 
+import controller.newengine.EngineUtils;
 import controller.newengine.SimulationEngine;
 
 public class View extends JFrame {
@@ -30,6 +39,7 @@ public class View extends JFrame {
 	JPanel map;
 	ServerView serv;
 	List<CarView> carsView;
+	TreeMap<Long, GeoTrafficLightMaster> trafficLightView;
 
 	private JTextArea timer = new JTextArea();
 	private JTextArea comms = new JTextArea();
@@ -38,12 +48,69 @@ public class View extends JFrame {
 	ChartView cht;
 
 	public View(int N, int M, JMapViewer map, ServerView serv,
-			List<CarView> carsView) {
+			List<CarView> carsView, TreeMap<Long, GeoTrafficLightMaster> trafficLightView) {
 		this.N = N;
 		this.M = M;
 		this.map = map;
+		map.addMouseListener(new MouseListener() {
+			
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void mousePressed(MouseEvent e) {
+				System.out.println(e.getX() + " " + e.getY());
+				System.out.println(map.getPosition(e.getX(), e.getY()));
+				Coordinate coord = map.getPosition(e.getX(), e.getY());
+				
+				Node node = null;
+				double dist = Double.MAX_VALUE;
+				
+				for (Way way : MobilityEngine.getInstance().streetsGraph.values()) {
+					
+					if (coord.getLat() >= way.min_lat && coord.getLat() <= way.max_lat
+							&& coord.getLon() >= way.min_long && coord.getLon() <= way.max_long) {
+						
+						Node found = way.getClosestNode(coord.getLat(), coord.getLon());
+						double distFound = Utils.distance(coord.getLat(), coord.getLon(), found.lat, found.lon);
+						
+						if ((node != null && distFound < dist) || (node == null)) {
+								node = found;
+								dist = distFound;
+						}
+					}
+				}
+				
+				GeoTrafficLightMaster mtl = EngineUtils.discoverClosestTrafficLightMaster(node.lat, node.lon);
+				
+				System.out.println("Neights " + MobilityEngine.getInstance().streetsGraph.get(mtl.getNode().wayId).neighs.get(mtl.getNode().id).size());
+				System.out.println(node + " One way" + MobilityEngine.getInstance().streetsGraph.get(node.wayId).getDirection());
+				System.out.println("master " + dist + " " + mtl.getId() + " " + mtl.getNode() + " | \n" + mtl.getTrafficLights().toString());
+			}
+			@Override
+			public void mouseExited(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void mouseEntered(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
 		this.serv = serv;
 		this.carsView = carsView;
+		this.trafficLightView = trafficLightView;
 		initView();
 	}
 

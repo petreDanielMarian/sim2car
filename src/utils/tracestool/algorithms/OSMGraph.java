@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
@@ -18,7 +19,6 @@ import java.util.logging.Logger;
 
 import model.OSMgraph.Node;
 import model.OSMgraph.Way;
-import utils.tracestool.Utils;
 import utils.tracestool.parameters.GenericParams;
 import utils.tracestool.parameters.OSM;
 
@@ -139,7 +139,7 @@ public class OSMGraph {
 	 */
     void getStreetsData( ){
 		FileInputStream fstream1, fstream2;
-		FileOutputStream ostream, ostream1, ostream2;
+		FileOutputStream ostream, ostream1, ostream2, ostream3;
 		String line;
 		
 		 /* The limits of the map */
@@ -155,18 +155,21 @@ public class OSMGraph {
 			fstream2 = new FileInputStream(GenericParams.mapConfig.getPartialStreetsFilename());
 
 			String fn_rez = GenericParams.mapConfig.getStreetsFilename();
-	
+			String fn_trafficLights = GenericParams.mapConfig.getTrafficLightsFilename();
 			String fn_graph = GenericParams.mapConfig.getPartialGraphFilename();
 
 			ostream = new FileOutputStream( fn_rez );
 			ostream2 = new FileOutputStream( fn_graph );
 			ostream1 = new FileOutputStream( indexTableFileName );
+			ostream3 = new FileOutputStream(fn_trafficLights);
 
 			BufferedReader br = new BufferedReader(new InputStreamReader(fstream1));
 			BufferedReader br2 = new BufferedReader(new InputStreamReader(fstream2));
 			BufferedWriter outbr = new BufferedWriter(new OutputStreamWriter(ostream));
+			BufferedWriter outbr_trafficLights = new BufferedWriter(new OutputStreamWriter(ostream3));
 			TreeMap <Long, Way>ways = new TreeMap <Long, Way>();
 			TreeMap <Long, Vector<Long>> nods = new TreeMap <Long, Vector<Long>>();
+			ArrayList<Long> trafficLightNodes = new ArrayList<Long>();
 			Way w = null ;
 
 			while( ( line = br2.readLine()) != null ){
@@ -223,7 +226,10 @@ public class OSMGraph {
 									int stopIdx = ws[1].indexOf("\"");
 									ws[1] = ws[1].substring(0, stopIdx).trim();
 									/* (ws[1].split(";"))[0].trim() - this is needed because some streets have two speed separated with ; */
-									Double maxspeed = Double.parseDouble( (ws[1].split(";"))[0].trim() );
+									Double maxspeed = 50.0;
+									try {
+										maxspeed = Double.parseDouble( (ws[1].split(";"))[0].trim() );
+									} catch (Exception ex) {}
 									/* 1 mile == 1,609344 km */
 									/* speed is express in m/s */
 									w.setMaximumSpeed( type_speed == 0 ? ( maxspeed * 1000) / 3600  : ( maxspeed * 1609.344) / 3600);
@@ -236,6 +242,7 @@ public class OSMGraph {
 
 			}
 
+			String prevLine = "";
 			while( (line = br.readLine()) != null ){
 				if( line.contains("<node") ){
 
@@ -256,6 +263,15 @@ public class OSMGraph {
 						}
 					}
 				}
+				if ( line.contains("<tag k=\"highway\" v=\"traffic_signals\"/>")) {
+					String subStr = prevLine.substring(prevLine.indexOf("id=\"") + "id=\"".length());
+					try {
+						Long nodeId = Long.parseLong(subStr.substring(0, subStr.indexOf("\"")));
+						trafficLightNodes.add(nodeId);
+					}
+					catch (Exception ex){}
+				}
+				prevLine = line;
 			}
 			map_lat_max = -360;
 			map_lat_min = 360;
@@ -347,9 +363,17 @@ public class OSMGraph {
 				for( int i = 0; i < nds_remove.size(); i++ )
 					a.getValue().nodes.remove(nds_remove.get(i));
 			}
+			
+			outbr_trafficLights.write("nodes id with traffic light: nodeId wayId\n ");
+			for (Long nodeId : trafficLightNodes) {
+				if (nods.get(nodeId) != null) {
+					outbr_trafficLights.write(nodeId + " " + nods.get(nodeId).get(0) + "\n");
+				}
+			}
 			br.close();
 			br2.close();
 			outbr.close();
+			outbr_trafficLights.close();
 
 			/* Now, it is created the streets graph using the file with all nodes in order to ease the search */
 			/* The graph uses a treemap storing its elements as <current_street_id, <intersection_node, (vector with neighbors streets)>>*/
