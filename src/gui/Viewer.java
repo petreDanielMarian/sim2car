@@ -57,13 +57,13 @@ public class Viewer {
 	}
 
 	public void addCar(GeoCar car) {
-		if (Globals.showGUI && car.getId() == 74) {
+		//if (Globals.showGUI && car.getId() == 74) {
 			CarView carView = new CarView(car.getId(), mapJ, car);
 			carView.setColor(new Color( (float) Math.random(),
 										(float) Math.random(),
 										(float) Math.random()) );
 			carViewList.add(carView);
-		}
+		//}
 	}
 	
 	public void addServers(ArrayList<GeoServer> servers) {

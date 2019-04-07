@@ -104,16 +104,17 @@ public class SimulationEngine implements EngineInterface {
 		entities.putAll(EngineUtils.getCars(getMapConfig().getTracesListFilename(), viewer, mobilityEngine) );
 		entities.putAll(EngineUtils.getServers(getMapConfig().getAccessPointsFilename(), viewer, mobilityEngine) );
 		if (Globals.useTrafficLights || Globals.useDynamicTrafficLights) {
-			System.out.println("use traffic lights");
 			entities.putAll(EngineUtils.getTrafficLights(getMapConfig().getTrafficLightsFilename(),
 					getMapConfig().getTrafficLightsLoaded(), viewer, mobilityEngine));
 		}
-			
-		/*for (Entity e : entities.values()) {
-			if (e instanceof GeoServer) {
-				EngineUtils.addApplicationToServer((GeoServer) e);
+		
+		if (Globals.activeApplications.contains(ApplicationType.ROUTING_APP)) {
+			for (Entity e : entities.values()) {
+				if (e instanceof GeoServer) {
+					EngineUtils.addApplicationToServer((GeoServer) e);
+				}
 			}
-		}*/	
+		}
 		
 		simulation = new Runnable() {
 			
@@ -190,10 +191,10 @@ public class SimulationEngine implements EngineInterface {
 					
 					if( (time + 2)% RoutingApplicationParameters.SamplingInterval == 0)
 					{
-						System.err.println("WRITTING ROUTES TIME TO FILES!");
+						System.out.println("WRITTING ROUTES TIME TO FILES!");
 						for (Entity e : entities.values()) {
 							if (e instanceof GeoCar && ((GeoCar) e).getActive() == 1) {
-								((GeoCar) e).printRouteData(mapConfig.getCity() + "/" + time + "_routes_time_" + ((GeoCar) e).getId() + ".txt");
+								((GeoCar) e).printRouteData(time + "_routes_time_" + ((GeoCar) e).getId() + ".txt");
 							}
 						}
 

@@ -69,6 +69,7 @@ public class GeoTrafficLightMaster extends Entity{
 	private Integer updateLock = 1;
 	
 	private long simulationTimeLastChange = 0;
+	private boolean changeColor = false;
 	
 	private long timeCurrentPhase = Globals.normalTrafficLightTime;
 
@@ -105,21 +106,7 @@ public class GeoTrafficLightMaster extends Entity{
 		Pair<Long, Integer> maxQueueKey = null;	
 	
 		if (Globals.useTrafficLights && timeExpired()) {
-			for (Pair<Long, Integer> key : waitingQueue.keySet()) {
-				if (waitingQueue.get(key).getSecond() > maxNoCarsWaiting) {
-					maxNoCarsWaiting = waitingQueue.get(key).getSecond();
-					maxQueueKey = key;
-				}
-			}
-			if (maxQueueKey != null)
-				collectWaitingQueueStatistics(waitingQueue.get(maxQueueKey).getFirst(), 
-						waitingQueue.get(maxQueueKey).getSecond());
-			
-			timeCurrentPhase = Globals.normalTrafficLightTime;
-			setTimeZero();
-			maxNoCarsWaiting = 0;
-			maxQueueKey = null;
-			waitingQueue.clear();
+			setChangeColor();
 			return;
 		}
 		
@@ -136,7 +123,7 @@ public class GeoTrafficLightMaster extends Entity{
 				
 				if (getTrafficLightColor(waitingQueue.keySet().iterator().next().getFirst(), waitingQueue.keySet().iterator().next().getSecond())
 						== Color.red) {
-					setTimeZero();
+					setChangeColor();
 				}
 				
 				/* Waiting queue statistics */
@@ -180,7 +167,7 @@ public class GeoTrafficLightMaster extends Entity{
 							
 							if (getTrafficLightColor(maxQueueKey.getFirst(), maxQueueKey.getSecond())
 									== Color.red) {
-								setTimeZero();
+								setChangeColor();
 							}
 							
 							/* Waiting queue statistics */
@@ -200,7 +187,7 @@ public class GeoTrafficLightMaster extends Entity{
 		//				}
 	
 						timeCurrentPhase = Globals.normalTrafficLightTime;
-						setTimeZero();
+						setChangeColor();
 						/* restart phase */
 						maxNoCarsWaiting = 0;
 						maxQueueKey = null;
@@ -211,14 +198,16 @@ public class GeoTrafficLightMaster extends Entity{
 		
 	}
 	
-	public void setTimeZero() {
+	public void setChangeColor() {
 		simulationTimeLastChange = SimulationEngine.getInstance().getSimulationTime();
+		changeColor = true;
 	}
 	
 	public void updateTrafficLightViews(long simulationTime) {
 			for (TrafficLightView trafficLightView : trafficLightViewList) {
 				trafficLightView.updateTrafficLightView();
 			}
+			changeColor = false;
 	}
 	
 	public boolean timeExpired() {
@@ -230,10 +219,7 @@ public class GeoTrafficLightMaster extends Entity{
 	}
 	
 	public boolean needsColorsUpdate(long simulationTime) {
-		if (simulationTime == simulationTimeLastChange) {
-			return true;
-		}
-		return false;
+		return changeColor;
 	}
 	/***
 	 * The master traffic light will put the car that has sent the message to the corresponding waiting queue.

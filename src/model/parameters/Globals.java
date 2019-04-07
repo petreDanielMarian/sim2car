@@ -53,7 +53,7 @@ public class Globals {
     public static int maxWaitingTime = 120;
 
 	@Parameter(names = {"--normalTrafficLightTime"}, description = "The normal amount of time a traffic light is green or red.")
-    public static int normalTrafficLightTime = 30;
+    public static int normalTrafficLightTime = 50;
 	
 	@Parameter(names = {"--minTrafficLightTime"}, description = "The minimum amount of time a traffic light is green or red.")
     public static int minTrafficLightTime = 15;

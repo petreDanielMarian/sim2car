@@ -4,22 +4,17 @@ import java.io.File;
 import java.awt.Color;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.security.Timestamp;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
-import javax.print.attribute.standard.DateTimeAtCompleted;
-
 import controller.network.NetworkInterface;
 import controller.network.NetworkType;
 import controller.network.NetworkWiFi;
 import controller.newengine.SimulationEngine;
 import model.OSMgraph.Node;
-import model.OSMgraph.Way;
 import model.mobility.MobilityEngine;
 import model.network.Message;
 import model.network.MessageType;
@@ -32,8 +27,6 @@ import utils.TraceParsingTool;
 import utils.tracestool.Utils;
 import application.Application;
 import application.ApplicationType;
-import application.routing.RoutingApplicationCar;
-import application.routing.RoutingApplicationData;
 import application.trafficLight.ApplicationTrafficLightControlData;
 
 public class GeoCar extends Entity {
@@ -45,12 +38,6 @@ public class GeoCar extends Entity {
 	 * checked against traffic rule and will replace currentPos.
 	 */
 	private MapPoint nextPos = null;
-
-	public double distanceFromStart = 0;
-	public double fuelFromStart = 0;
-	public long startTime;
-	public long timeReachDest = 0;
-	private boolean reachDestination = false;
 
 	/** The speed of the car. */
 	public double speed = 0.0;
@@ -76,6 +63,8 @@ public class GeoCar extends Entity {
 	public AtomicBoolean hasMoved = new AtomicBoolean();
 
 	private long routeStartTime = 0;
+	private double routeDistanceFromStart = 0;
+	public double routeFuelFromStart = 0;
 	private long routes_idx = 0;
 
 	/** Used to count the number of times the car has stayed still */
@@ -109,14 +98,6 @@ public class GeoCar extends Entity {
 		this.setCurrentPos(null);
 		this.setNextPos(null);
 		this.beginNewRoute = true;
-	}
-
-	public boolean isReachDestination() {
-		return reachDestination;
-	}
-
-	public void setReachDestination(boolean reachDestination) {
-		this.reachDestination = reachDestination;
 	}
 
 	public void setSpeed(double speed) {
@@ -401,29 +382,6 @@ public class GeoCar extends Entity {
 		return g;
 	}
 
-	/***
-	 * Sets simulation time, real time in seconds, avg speed
-	 */
-	public void setTimeReachDestination() {
-		// String value;
-		// System.out.println("reach destination");
-		//
-		// value = String.valueOf(SimulationEngine.getInstance().getSimulationTime() -
-		// startTime);
-		//
-		// // [km/h]
-		// double avgSpeed = (distanceFromStart /
-		// (SimulationEngine.getInstance().getSimulationTime() - startTime))
-		// *3.6;
-		// double avgFuelConsumption =
-		// ComputeAverageFuelConsumption.computeAverageFuelConsumption(fuelFromStart,
-		// (SimulationEngine.getInstance().getSimulationTime() - startTime));
-		// value += " " + avgSpeed + " " + avgFuelConsumption;
-		// RoutingApplicationCar.timeReachDestination.put(this.getId(), value);
-		timeReachDest = SimulationEngine.getInstance().getSimulationTime();
-		setReachDestination(true);
-	}
-
 	/**
 	 * Prepares the next position the car will go to. This must be called after the
 	 * updateSpeed method.
@@ -443,10 +401,16 @@ public class GeoCar extends Entity {
 			return this.getCurrentPos();
 		}
 
+		/* Reach destination for this route */
 		if (this.getCurrentPos().equals(route.getEndPoint())) {
 			long timei = SimulationEngine.getInstance().getSimulationTime() - routeStartTime;
 			if (timei > 1) {
-				routesTime.append((routes_idx++) + " " + timei + System.lineSeparator());
+				// [km/h]
+				double avgSpeed = (routeDistanceFromStart / timei)
+						*3.6;
+				double avgFuelConsumption = ComputeAverageFuelConsumption.computeAverageFuelConsumption(routeFuelFromStart, 
+						timei);
+				routesTime.append((routes_idx++) + " " + timei + " " + avgSpeed + " " + avgFuelConsumption + System.lineSeparator());
 			}
 			return null;
 		}
@@ -509,11 +473,6 @@ public class GeoCar extends Entity {
 			if (route.getIntersectionList().size() == 1
 					&& (mobility.isBetween(end.lat, end.lon, last.lat, last.lon, lat, lon))) {
 				newPos = end;
-				/* reach destination */
-				if (!this.isReachDestination()) {
-					System.out.println("end");
-					setTimeReachDestination();
-				}
 			} else {
 				newPos = MapPoint.getMapPoint(lat, lon, this.getCurrentPos().occupied, prevNode.wayId);
 				newPos.segmentIndex = mobility.getSegmentNumber(prevNode);
@@ -523,10 +482,16 @@ public class GeoCar extends Entity {
 
 		newPos.direction = newDirection;
 
+		/* Reach destination for this route */
 		if (newPos.equals(route.getEndPoint())) {
 			long timei = SimulationEngine.getInstance().getSimulationTime() - routeStartTime;
 			if (timei > 1) {
-				routesTime.append((routes_idx++) + " " + timei + System.lineSeparator());
+				// [km/h]
+				double avgSpeed = (routeDistanceFromStart / timei)
+						*3.6;
+				double avgFuelConsumption = ComputeAverageFuelConsumption.computeAverageFuelConsumption(routeFuelFromStart, 
+						timei);
+				routesTime.append((routes_idx++) + " " + timei + " " + avgSpeed + " " + avgFuelConsumption + System.lineSeparator());
 			}
 			return null;
 		}
@@ -586,8 +551,6 @@ public class GeoCar extends Entity {
 		try {
 			if (isStoppedAtTrafficLight())
 				return;
-			if (isReachDestination())
-				return;
 
 			if (!stoppedAtTrafficLight && hasMoved.compareAndSet(false, true) && this.active == 1) {
 				if (elementAhead != null && elementAhead.getFirst() != null
@@ -640,8 +603,8 @@ public class GeoCar extends Entity {
 					this.nextPos = newPosition;
 				}
 				/* Compute total distance for avg speed */
-				if (newPosition != null && getCurrentPos() != null && !isReachDestination())
-					distanceFromStart += Utils.distance(getCurrentPos().lat, getCurrentPos().lon, newPosition.lat,
+				if (newPosition != null && getCurrentPos() != null)
+					routeDistanceFromStart += Utils.distance(getCurrentPos().lat, getCurrentPos().lon, newPosition.lat,
 							newPosition.lon);
 
 				mobility.removeCar(this.getCurrentPos(), this.getId());
@@ -718,6 +681,8 @@ public class GeoCar extends Entity {
 		intersections.remove(0);
 		this.setCurrentPos(route.getStartPoint());
 		routeStartTime = SimulationEngine.getInstance().getSimulationTime();
+		routeFuelFromStart = 0;
+		routeDistanceFromStart = 0;
 		// routesTime.append("< " + start.lat + " " + start.lon + " " + end.lat + " " +
 		// end.lon);
 		// tracesTime.append("< " + start.lat + " " + start.lon + " " + end.lat + " " +
@@ -728,6 +693,14 @@ public class GeoCar extends Entity {
 	public void printRouteData(String filename) {
 		try {
 			String city = SimulationEngine.getInstance().getMapConfig().getCity();
+			
+			city += "/";
+			if (Globals.useTrafficLights)
+				city += "TL/";
+			if (Globals.useDynamicTrafficLights)
+				city += "DTL/";
+
+			filename = city + filename;
 			new File(city).mkdir();
 			PrintWriter pw;
 
@@ -793,7 +766,8 @@ public class GeoCar extends Entity {
 
 	/**
 	 * Remove the route; Reset the duration, speed and delete the car from the
-	 * correspondent cell of the graph
+	 * correspondent cell of the graph, restart start time for travel speed and
+	 * duration analysis
 	 */
 	public void resetRoute() {
 		if (this.routes.size() != 0) {
@@ -838,7 +812,6 @@ public class GeoCar extends Entity {
 	public void start() {
 		setBeginNewRoute(false);
 		initRoute();
-		startTime = SimulationEngine.getInstance().getSimulationTime();
 	}
 
 	public boolean isStoppedAtTrafficLight() {
