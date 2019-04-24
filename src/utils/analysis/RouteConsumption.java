@@ -26,12 +26,9 @@ public class RouteConsumption {
 
 	public static void main(String[] args) {
 		String city  = "rome";
-		//readCarsData("sanfrancisco");
-		//writeCarsAggregateData("sanfrancisco");
-		//readCarsData("beijing");
-		//writeCarsAggregateData("beijing");
-		//readCarsDataNATL(city);
-		//writeCarsAggregateDataNATL(city);
+
+		readCarsDataNATL(city);
+		writeCarsAggregateDataNATL(city);
 		
 		carsData.clear();
 		carsData = new TreeMap<Long, CarData>();
