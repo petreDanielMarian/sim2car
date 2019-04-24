@@ -99,6 +99,8 @@ public final class EngineUtils {
 				if (count == Globals.carsCount)
 					break;
 
+				if (count == 183)
+					System.out.println("read ");
 				logger.info(" We opened " + count + ". " + line);
 				StringTokenizer st = new StringTokenizer(line, " ", false);
 				st.nextToken(); /* <cab */
@@ -109,6 +111,8 @@ public final class EngineUtils {
 				
 				GeoCar car = new GeoCar(count);
 				car.setRoutes(routes);
+				if (count == 183)
+					System.out.println("read +");
 
 				/* Create each network interface which is defined */
 				for( NetworkType type : Globals.activeNetInterfaces )
@@ -383,7 +387,9 @@ public final class EngineUtils {
 					}
 					
 					// traffic light master line
-					Long masterId = Long.parseLong(st.nextToken()); 	/* traffic light master id */
+					count++;
+					Long masterId = (long) count;
+					st.nextToken(); 	/* traffic light master id */
 					Long nodeId = Long.parseLong(st.nextToken()); 		/* node id */
 					Long wayId = Long.parseLong(st.nextToken()); 		/* way id" */
 					

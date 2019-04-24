@@ -10,9 +10,26 @@ public class CarData {
 	private TrafficData speed = new TrafficData();
 	private TrafficData time = new TrafficData();
 	
+	private int noRoutesNA = 0;
 	private int noRoutesTL = 0;
 	private int noRoutesDTL = 0;
-	
+	private int minNoRoutes = Integer.MAX_VALUE;	
+
+	public int getMinNoRoutes() {
+		return minNoRoutes;
+	}
+
+	public void setMinNoRoutes(int minNoRoutes) {
+		this.minNoRoutes = minNoRoutes;
+	}
+
+	public int getNoRoutesNA() {
+		return noRoutesNA;
+	}
+
+	public void setNoRoutesNA(int noRoutesNA) {
+		this.noRoutesNA = noRoutesNA;
+	}
 
 	public int getNoRoutesTL() {
 		return noRoutesTL;
@@ -93,7 +110,7 @@ public class CarData {
 
 	@Override
 	public String toString() {
-		return noRoutesTL + " " + noRoutesDTL + " " + time.getData() + " " + speed.getData() + " " + fuel.getData();
+		return minNoRoutes + " " + noRoutesNA + " " + noRoutesTL + " " + noRoutesDTL + " " + time.getData() + " " + speed.getData() + " " + fuel.getData();
 	}
 
 	public enum DataType {

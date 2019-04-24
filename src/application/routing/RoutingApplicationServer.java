@@ -414,9 +414,11 @@ public class RoutingApplicationServer extends Application{
 					// Add neighbors as common
 					//System.out.println("aici");
 					for (Long neighId : this.serv.neighServers) {
-						GeoServer s = (GeoServer) SimulationEngine.getInstance().getEntityById(neighId); 
-						if (s != null && belongToCrtArea(streetsGraph, n, s)) {
-							c.commonServers.add(s.getId());
+						if (SimulationEngine.getInstance().getEntityById(neighId) instanceof GeoServer) {
+							GeoServer s = (GeoServer) SimulationEngine.getInstance().getEntityById(neighId); 
+							if (s != null && belongToCrtArea(streetsGraph, n, s)) {
+								c.commonServers.add(s.getId());
+							}
 						}
 					}
 

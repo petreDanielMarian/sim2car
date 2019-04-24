@@ -24,7 +24,7 @@ public class StartTraceTool {
 		//JunctionsDetection.getJunctionsDetection();
 		//PageRank.determinePageRank();
 		//BetweennessCentrality.determineBetweennessCentrality();
-		BetweennessCentralityParallel.determineBetweennessCentrality();
+		//BetweennessCentralityParallel.determineBetweennessCentrality();
 		//BetweennessCentralityParallel2.determineBetweennessCentrality();
 		SyntheticTracesGenerator.getSyntheticTraces();
 	}

@@ -696,12 +696,14 @@ public class GeoCar extends Entity {
 			
 			city += "/";
 			if (Globals.useTrafficLights)
-				city += "TL/";
+				city += "TL";
 			if (Globals.useDynamicTrafficLights)
-				city += "DTL/";
+				city += "DTL";
+			if (!Globals.useTrafficLights && !Globals.useDynamicTrafficLights)
+				city += "NA";
 
-			filename = city + filename;
-			new File(city).mkdir();
+			filename = city + "/" + filename;
+			new File(city).mkdirs();
 			PrintWriter pw;
 
 			pw = new PrintWriter(filename);

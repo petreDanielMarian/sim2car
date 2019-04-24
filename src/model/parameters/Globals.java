@@ -47,7 +47,7 @@ public class Globals {
 	public static int debug = 0;
 	
 	@Parameter(names = {"--carsCount"}, description = "The number of cars simulated.")
-    public static int carsCount = 150;
+    public static int carsCount = 1300;
 	
 	@Parameter(names = {"--maxWaitingTime"}, description = "The maximum simulation time a car can wait at a traffic light.")
     public static int maxWaitingTime = 120;

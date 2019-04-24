@@ -25,19 +25,167 @@ public class RouteConsumption {
 	private static TreeMap<Long, CarData> carsData = new TreeMap<Long, CarData>();
 
 	public static void main(String[] args) {
-		readCarsData("sanfrancisco");
-		writeCarsAggregateData("sanfrancisco");
+		String city  = "rome";
+		//readCarsData("sanfrancisco");
+		//writeCarsAggregateData("sanfrancisco");
 		//readCarsData("beijing");
 		//writeCarsAggregateData("beijing");
+		//readCarsDataNATL(city);
+		//writeCarsAggregateDataNATL(city);
+		
+		carsData.clear();
+		carsData = new TreeMap<Long, CarData>();
+		readCarsDataTLDTL(city);
+		writeCarsAggregateDataTLDTL(city);
 	}
 	
 	/**
 	 * 
 	 * @param city
 	 */
-	public static void readCarsData(String city) {
-		//readTimeReachDestData(city + "timereachdestination_statistics_noTrafficLights.txt", CarData.FileType.NoTrafficLights);
-		readRouteData(city + "/TL", city + "/DTL");
+	public static void readCarsDataNATL(String city) {
+		findMinimumNoRoutes(city + "/TL", "", city + "/NA");
+		readRouteData(city + "/TL", "", city + "/NA");
+	}
+	
+	/**
+	 * 
+	 * @param city
+	 */
+	public static void readCarsDataTLDTL(String city) {
+		findMinimumNoRoutes(city + "/TL", city + "/DTL", "");
+		readRouteData(city + "/TL", city + "/DTL", "");
+	}
+	
+	public static void findMinimumNoRoutes(String dirNameTL, String dirNameDTL, String dirNameNA) {
+		FileInputStream fstreamNA = null;
+		FileInputStream fstreamTL = null;
+		FileInputStream fstreamDTL = null;
+
+		if (dirNameNA != "") {
+			final File dirNA = new File(dirNameNA);
+			for (final File fileEntry : dirNA.listFiles()) {
+				try {
+					fstreamNA = new FileInputStream(fileEntry.getAbsolutePath());
+					
+					BufferedReader brNA = new BufferedReader(new InputStreamReader(fstreamNA));
+	
+					String lineNA, prevLine = "";
+					
+					Long carId = Long.parseLong(fileEntry.getName()
+							.substring(fileEntry.getName().lastIndexOf("_") + 1, fileEntry.getName().lastIndexOf(".txt"))); 
+					int countNA = 0;
+					while ( (lineNA = brNA.readLine()) != null) {
+						if (lineNA.equals(prevLine))
+							continue;
+						countNA++;
+						prevLine = lineNA;
+					}
+					
+					CarData carData = new CarData();
+					if (carsData.containsKey(carId)) {
+						carData = carsData.get(carId);
+					}
+					if (carData.getMinNoRoutes() > countNA && countNA > 0) {
+						carData.setMinNoRoutes(countNA);
+						carsData.put(carId, carData);
+					}
+					brNA.close();
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				} finally {
+					try {
+						fstreamNA.close();
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					}
+				}
+				
+			}
+		}
+		if (dirNameTL != "") {
+			final File dirTL = new File(dirNameTL);
+			for (final File fileEntry : dirTL.listFiles()) {
+				try {
+					fstreamTL = new FileInputStream(fileEntry.getAbsolutePath());
+					
+					BufferedReader brTL = new BufferedReader(new InputStreamReader(fstreamTL));
+	
+					String lineTL, prevLine = "";
+					
+					Long carId = Long.parseLong(fileEntry.getName()
+							.substring(fileEntry.getName().lastIndexOf("_") + 1, fileEntry.getName().lastIndexOf(".txt"))); 
+					int countTL = 0;
+					while ( (lineTL = brTL.readLine()) != null) {
+						if (lineTL.equals(prevLine))
+							continue;
+						countTL++;
+						prevLine = lineTL;
+					}
+					
+					CarData carData = new CarData();
+					if (carsData.containsKey(carId)) {
+						carData = carsData.get(carId);
+					}
+					if (carData.getMinNoRoutes() > countTL && countTL > 0) {
+						carData.setMinNoRoutes(countTL);
+						carsData.put(carId, carData);
+					}
+					brTL.close();
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				} finally {
+					try {
+						fstreamTL.close();
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					}
+				}
+				
+			}
+		}
+		
+		if (dirNameDTL != "") {
+			final File dirDTL = new File(dirNameDTL);
+			for (final File fileEntry : dirDTL.listFiles()) {
+				try {
+					fstreamDTL = new FileInputStream(fileEntry.getAbsolutePath());
+					
+					BufferedReader brDTL = new BufferedReader(new InputStreamReader(fstreamDTL));
+	
+					String lineDTL, prevLine = "";
+					
+					Long carId = Long.parseLong(fileEntry.getName()
+							.substring(fileEntry.getName().lastIndexOf("_") + 1, fileEntry.getName().lastIndexOf(".txt"))); 
+					int countDTL = 0;
+					while ( (lineDTL = brDTL.readLine()) != null) {
+						if (lineDTL.equals(prevLine))
+							continue;
+						countDTL++;
+						prevLine = "";
+					}
+					
+					CarData carData = new CarData();
+					if (carsData.containsKey(carId)) {
+						carData = carsData.get(carId);
+					}
+					if (carData.getMinNoRoutes() > countDTL && countDTL > 0) {
+						carData.setMinNoRoutes(countDTL);
+						carsData.put(carId, carData);
+					}
+					brDTL.close();
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				} finally {
+					try {
+						fstreamDTL.close();
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					}
+				}
+				
+			}
+		}
 	}
 	
 	/**
@@ -45,110 +193,255 @@ public class RouteConsumption {
 	 * @param fileName
 	 * @param fileType
 	 */
-	public static void readRouteData(String dirNameTL, String dirNameDTL) {
+	public static void readRouteData(String dirNameTL, String dirNameDTL, String dirNameNA) {
+		FileInputStream fstreamNA = null;
 		FileInputStream fstreamTL = null;
 		FileInputStream fstreamDTL = null;
 
-		final File dirTL = new File(dirNameTL);
-		final File dirDTL = new File(dirNameDTL);
-		for (final File fileEntry : dirDTL.listFiles()) {
-			try {
-				fstreamTL = new FileInputStream(fileEntry.getAbsolutePath().replace("DTL", "TL"));
-				BufferedReader brTL = new BufferedReader(new InputStreamReader(fstreamTL));
-				
-				fstreamDTL = new FileInputStream(fileEntry.getAbsolutePath());
-				BufferedReader brDTL = new BufferedReader(new InputStreamReader(fstreamDTL));
-				String lineTL;
-				String lineDTL;
-				
-				Long carId = Long.parseLong(fileEntry.getName()
-						.substring(fileEntry.getName().lastIndexOf("_") + 1, fileEntry.getName().lastIndexOf(".txt"))); 
-				
-				Long timeReachDestTL = 0l;
-				Double avgSpeedTL = 0d;
-				Double avgFuelTL = 0d;
-				int countTL = 0;
-				
-				Long timeReachDestDTL = 0l;
-				Double avgSpeedDTL = 0d;
-				Double avgFuelDTL = 0d;
-				int countDTL = 0;
-				while ((lineTL = brTL.readLine()) != null && (lineDTL = brDTL.readLine()) != null) {
-					StringTokenizer stTL = new StringTokenizer(lineTL, " ", false);
-					stTL.nextToken(); // route id
-					countTL++;
-					timeReachDestTL += Long.parseLong(stTL.nextToken());
-					avgSpeedTL += Double.parseDouble(stTL.nextToken());
-					avgFuelTL += Double.parseDouble(stTL.nextToken());
+		if (dirNameNA != "") {
+			final File dirNA = new File(dirNameNA);
+			for (final File fileEntry : dirNA.listFiles()) {
+				try {
+					fstreamNA = new FileInputStream(fileEntry.getAbsolutePath());
 					
-					StringTokenizer stDTL = new StringTokenizer(lineDTL, " ", false);
-					stDTL.nextToken(); // route id
-					countDTL++;
-					timeReachDestDTL += Long.parseLong(stDTL.nextToken());
-					avgSpeedDTL += Double.parseDouble(stDTL.nextToken());
-					avgFuelDTL += Double.parseDouble(stDTL.nextToken());
-				}
-				while ((lineTL = brTL.readLine()) != null) {
-					countTL++;
-				}
-				while ((lineDTL = brDTL.readLine()) != null) {
-					countDTL++;
-				}
-				if (countTL > 0 && countDTL > 0) {
-					avgSpeedTL = avgSpeedTL/countTL;
-					avgFuelTL = avgFuelTL/countTL;
+					BufferedReader brNA = new BufferedReader(new InputStreamReader(fstreamNA));
+	
+					String lineNA, prevLine = "";
 					
-					avgSpeedDTL = avgSpeedDTL/countDTL;
-					avgFuelDTL = avgFuelDTL/countDTL;
+					Long carId = Long.parseLong(fileEntry.getName()
+							.substring(fileEntry.getName().lastIndexOf("_") + 1, fileEntry.getName().lastIndexOf(".txt"))); 
 					
+					Long timeReachDestNA = 0l;
+					Double avgSpeedNA = 0d;
+					Double avgFuelNA = 0d;
+					int countNA = 0;
 					CarData carData = new CarData();
 					if (carsData.containsKey(carId)) {
 						carData = carsData.get(carId);
 					}
-					carData.setNoRoutesTL(countTL);
-					carData.setTime(DataType.WithTrafficLights, timeReachDestTL);
-					carData.setFuel(DataType.WithTrafficLights, avgFuelTL);
-					carData.setSpeed(DataType.WithTrafficLights, avgSpeedTL);
 					
-					carData.setNoRoutesDTL(countDTL);
-					carData.setTime(DataType.WithDynamicTrafficLights, timeReachDestDTL);
-					carData.setFuel(DataType.WithDynamicTrafficLights, avgFuelDTL);
-					carData.setSpeed(DataType.WithDynamicTrafficLights, avgSpeedDTL);
+						while ( (lineNA = brNA.readLine()) != null) {
+							if (lineNA.equals(prevLine))
+								continue;
+							StringTokenizer stNA = new StringTokenizer(lineNA, " ", false);
+							stNA.nextToken(); // route id
+							countNA++;
+							if (countNA <= carData.getMinNoRoutes()) {
+								timeReachDestNA += Long.parseLong(stNA.nextToken());
+								avgSpeedNA += Double.parseDouble(stNA.nextToken());
+								avgFuelNA += Double.parseDouble(stNA.nextToken());
+							}
+							prevLine = lineNA;
+						}
+					
 	
-					carsData.put(carId, carData);
-				}
-				brTL.close();
-				brDTL.close();
-			} catch (IOException ex) {
-				ex.printStackTrace();
-			} finally {
-				try {
-					fstreamTL.close();
-					fstreamDTL.close();
+					if ( countNA > 0) {
+						
+						avgSpeedNA = avgSpeedNA/carData.getMinNoRoutes();
+						avgFuelNA = avgFuelNA/carData.getMinNoRoutes();
+						
+						carData.setNoRoutesNA(countNA);
+						carData.setTime(DataType.NoTrafficLights, timeReachDestNA);
+						carData.setFuel(DataType.NoTrafficLights, avgFuelNA);
+						carData.setSpeed(DataType.NoTrafficLights, avgSpeedNA);
+		
+						carsData.put(carId, carData);
+					}
+					brNA.close();
 				} catch (IOException ex) {
 					ex.printStackTrace();
+				} finally {
+					try {
+						fstreamNA.close();
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					}
 				}
 			}
 		}
-		
+			if (dirNameDTL != "") {
+				final File dirDTL = new File(dirNameDTL);
+				for (final File fileEntry : dirDTL.listFiles()) {
+					try {
+						fstreamDTL = new FileInputStream(fileEntry.getAbsolutePath());
+						BufferedReader brDTL = new BufferedReader(new InputStreamReader(fstreamDTL));
+	
+						String lineDTL, prevLine = "";
+						
+						Long carId = Long.parseLong(fileEntry.getName()
+								.substring(fileEntry.getName().lastIndexOf("_") + 1, fileEntry.getName().lastIndexOf(".txt"))); 
+						
+						Long timeReachDestDTL = 0l;
+						Double avgSpeedDTL = 0d;
+						Double avgFuelDTL = 0d;
+						int countDTL = 0;
+						CarData carData = new CarData();
+						if (carsData.containsKey(carId)) {
+							carData = carsData.get(carId);
+						}
+	
+							while ((lineDTL = brDTL.readLine()) != null) {	
+								if (lineDTL.equals(prevLine))
+									continue;
+								StringTokenizer stDTL = new StringTokenizer(lineDTL, " ", false);
+								stDTL.nextToken(); // route id
+								countDTL++;
+								if (countDTL <= carData.getMinNoRoutes()) {
+									timeReachDestDTL += Long.parseLong(stDTL.nextToken());
+									avgSpeedDTL += Double.parseDouble(stDTL.nextToken());
+									avgFuelDTL += Double.parseDouble(stDTL.nextToken());
+								}
+								prevLine = lineDTL;
+							}
+	
+						if ( countDTL > 0) {
+							
+							avgSpeedDTL = avgSpeedDTL/carData.getMinNoRoutes();
+							avgFuelDTL = avgFuelDTL/carData.getMinNoRoutes();
+							
+							carData.setNoRoutesDTL(countDTL);
+							carData.setTime(DataType.WithDynamicTrafficLights, timeReachDestDTL);
+							carData.setFuel(DataType.WithDynamicTrafficLights, avgFuelDTL);
+							carData.setSpeed(DataType.WithDynamicTrafficLights, avgSpeedDTL);
+			
+							carsData.put(carId, carData);
+						}
+						brDTL.close();
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					} finally {
+						try {
+							fstreamDTL.close();
+						} catch (IOException ex) {
+							ex.printStackTrace();
+						}
+					}
+				}
+			}
+				
+				if (dirNameTL != "") {
+					final File dirTL = new File(dirNameTL);
+					for (final File fileEntry : dirTL.listFiles()) {
+						try {
+							fstreamTL = new FileInputStream(fileEntry.getAbsolutePath());
+							
+							BufferedReader brTL = new BufferedReader(new InputStreamReader(fstreamTL));
+	
+							String lineTL, prevLine = "";		
+							
+							Long carId = Long.parseLong(fileEntry.getName()
+									.substring(fileEntry.getName().lastIndexOf("_") + 1, fileEntry.getName().lastIndexOf(".txt"))); 
+							
+							Long timeReachDestTL = 0l;
+							Double avgSpeedTL = 0d;
+							Double avgFuelTL = 0d;
+							int countTL = 0;
+							CarData carData = new CarData();
+							if (carsData.containsKey(carId)) {
+								carData = carsData.get(carId);
+							}
+							
+								while ((lineTL = brTL.readLine()) != null) {
+									if (lineTL.equals(prevLine))
+										continue;
+									StringTokenizer stTL = new StringTokenizer(lineTL, " ", false);
+									stTL.nextToken(); // route id
+									countTL++;
+									if (countTL <= carData.getMinNoRoutes()) {
+										timeReachDestTL += Long.parseLong(stTL.nextToken());
+										avgSpeedTL += Double.parseDouble(stTL.nextToken());
+										avgFuelTL += Double.parseDouble(stTL.nextToken());
+									}
+									prevLine = lineTL;
+								}
+							
+							if (countTL > 0) {
+								avgSpeedTL = avgSpeedTL/carData.getMinNoRoutes();
+								avgFuelTL = avgFuelTL/carData.getMinNoRoutes();
+
+								carData.setNoRoutesTL(countTL);
+								carData.setTime(DataType.WithTrafficLights, timeReachDestTL);
+								carData.setFuel(DataType.WithTrafficLights, avgFuelTL);
+								carData.setSpeed(DataType.WithTrafficLights, avgSpeedTL);
+				
+								carsData.put(carId, carData);
+							}
+							brTL.close();
+						} catch (IOException ex) {
+							ex.printStackTrace();
+						} finally {
+							try {
+								fstreamTL.close();
+							} catch (IOException ex) {
+								ex.printStackTrace();
+							}
+						}
+					}
+				}	
 	}
 	
 	/**
 	 * 
 	 * @param city
 	 */
-	public static void writeCarsAggregateData(String city) {
+	public static void writeCarsAggregateDataNATL(String city) {
 		PrintWriter writer = null;
 		try {
-			writer = new PrintWriter(city + "/CarsData.txt", "UTF-8");
+			writer = new PrintWriter(city + "/CarsDataNAvsTL.txt", "UTF-8");
 			writer.println("carId "
-					+ " TLnoRoutes DTLnoRoutes"
+					+ " MinNoRoutes NAnoRoutes TLnoRoutes DTLnoRoutes"
+					+ " NAtimeReachDest(sec) TLtimeReachDest(sec) DTLtimeReachDest(sec)"
+					+ " NAavgSpeed(km/h) TLavgSpeed(km/h) DTLavgSpeed(km/h)"
+					+ " NAavgFuel(L/h) TLavgFuel(L/h) DTLavgFuel(L/h)");
+			/* Write data about cars that reached destination when no traffic light was used */
+			for( Map.Entry<Long, CarData> entry : carsData.entrySet() )
+			{
+				if ( entry.getValue().getNoRoutesTL() > 0 && entry.getValue().getNoRoutesNA() > 0) {
+					writer.println(entry.getKey() + " " + entry.getValue().toString());	
+				}
+			}
+			writer.println("");
+			/* Write data about cars that reached destination when no traffic light was used */
+			for( Map.Entry<Long, CarData> entry : carsData.entrySet() )
+			{
+				if ( entry.getValue().getNoRoutesTL() == 0 && entry.getValue().getNoRoutesNA() > 0)
+					writer.println(entry.getKey() + " " + entry.getValue().toString());	
+			}
+			writer.close();
+
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (UnsupportedEncodingException e1) {
+			e1.printStackTrace();
+		}				
+	}
+	
+	/**
+	 * 
+	 * @param city
+	 */
+	public static void writeCarsAggregateDataTLDTL(String city) {
+		PrintWriter writer = null;
+		try {
+			writer = new PrintWriter(city + "/CarsDataTLvsDTL.txt", "UTF-8");
+			writer.println("carId "
+					+ " MinNoRoutes NAnoRoutes TLnoRoutes DTLnoRoutes"
 					+ " NAtimeReachDest(sec) TLtimeReachDest(sec) DTLtimeReachDest(sec)"
 					+ " NAavgSpeed(km/h) TLavgSpeed(km/h) DTLavgSpeed(km/h)"
 					+ " NAavgFuel(L/h) TLavgFuel(L/h) DTLavgFuel(L/h)");
 			for( Map.Entry<Long, CarData> entry : carsData.entrySet() )
 			{
-				writer.println(entry.getKey() + " " + entry.getValue().toString());	
+				if ( entry.getValue().getNoRoutesTL() > 0 && entry.getValue().getNoRoutesDTL() > 0
+						&& entry.getValue().getSpeed().getAvgDTL() > 0 && entry.getValue().getSpeed().getAvgTL() > 0)
+					writer.println(entry.getKey() + " " + entry.getValue().toString());	
+			}
+			writer.println("");
+			
+			for( Map.Entry<Long, CarData> entry : carsData.entrySet() )
+			{
+				if ( entry.getValue().getNoRoutesTL() == 0 && entry.getValue().getNoRoutesDTL() > 0
+						&& entry.getValue().getSpeed().getAvgDTL() > 0)
+					writer.println(entry.getKey() + " " + entry.getValue().toString());	
 			}
 			writer.close();
 

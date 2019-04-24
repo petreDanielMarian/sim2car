@@ -853,6 +853,7 @@ public class Utils {
 							intersections.add(crt);
 
 					} catch (Throwable t) { /* if something wrong happens with the car reading, just advance to the next car */
+						System.out.println(filename);
 						logger.info("Car parsing failed for "+filename);
 						t.printStackTrace();
 					}

@@ -193,7 +193,7 @@ public class SimulationEngine implements EngineInterface {
 					{
 						System.out.println("WRITTING ROUTES TIME TO FILES!");
 						for (Entity e : entities.values()) {
-							if (e instanceof GeoCar && ((GeoCar) e).getActive() == 1) {
+							if (e instanceof GeoCar) {
 								((GeoCar) e).printRouteData(time + "_routes_time_" + ((GeoCar) e).getId() + ".txt");
 							}
 						}

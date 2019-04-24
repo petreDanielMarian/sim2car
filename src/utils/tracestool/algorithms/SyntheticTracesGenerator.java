@@ -45,6 +45,7 @@ public class SyntheticTracesGenerator {
 
 		/* load the graph */
 		logger.info("Starting to load the OSM graph");
+		System.out.println(limits.toString());
 
 		long startTime = System.currentTimeMillis();
 
@@ -64,10 +65,11 @@ public class SyntheticTracesGenerator {
 	
 	public static void startTracesGeneration( ){
 
-		minALat = GenericParams.mapConfig.getAreaMinLat();
-		maxALat = GenericParams.mapConfig.getAreaMaxLat();
-		minALon = GenericParams.mapConfig.getAreaMinLon();
-		maxALon = GenericParams.mapConfig.getAreaMaxLon();
+		//rome/beijing/sanfrancisco
+		minALat = 41.8763;//41.8763;//39.86;//37.746;//GenericParams.mapConfig.getAreaMinLat();
+		maxALat = 41.92;//41.92;//39.952;//37.76;//GenericParams.mapConfig.getAreaMaxLat();
+		minALon = 12.43;//12.43;//116.321;//-122.425;//GenericParams.mapConfig.getAreaMinLon();
+		maxALon = 12.51;//12.51;//116.393;//-122.413;//GenericParams.mapConfig.getAreaMaxLon();
 
 		jointsIDs = new Vector<Pair<Long,Long>>();
 
@@ -89,7 +91,7 @@ public class SyntheticTracesGenerator {
 			}
 		}
 
-		for( int i = 0; i < SyntheticTracesGeneratorParams.generatedTracesNumber; i++ )
+		for( int i = 925; i < SyntheticTracesGeneratorParams.generatedTracesNumber; i++ )
 		{
 			String name = "joints_" + GenericParams.mapConfig.getCity();
 			name += "_gen" + i + ".txt";
