@@ -65,11 +65,10 @@ public class SyntheticTracesGenerator {
 	
 	public static void startTracesGeneration( ){
 
-		//rome/beijing/sanfrancisco
-		minALat = 41.8763;//41.8763;//39.86;//37.746;//GenericParams.mapConfig.getAreaMinLat();
-		maxALat = 41.92;//41.92;//39.952;//37.76;//GenericParams.mapConfig.getAreaMaxLat();
-		minALon = 12.43;//12.43;//116.321;//-122.425;//GenericParams.mapConfig.getAreaMinLon();
-		maxALon = 12.51;//12.51;//116.393;//-122.413;//GenericParams.mapConfig.getAreaMaxLon();
+		minALat = GenericParams.mapConfig.getAreaMinLat();
+		maxALat = GenericParams.mapConfig.getAreaMaxLat();
+		minALon = GenericParams.mapConfig.getAreaMinLon();
+		maxALon = GenericParams.mapConfig.getAreaMaxLon();
 
 		jointsIDs = new Vector<Pair<Long,Long>>();
 
