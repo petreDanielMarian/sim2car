@@ -3,7 +3,7 @@ package utils.tracestool.parameters;
 public class SyntheticTracesGeneratorParams {
 
 	/* Number of synthetic traces generated */
-	public static int generatedTracesNumber = 1285; 
+	public static int generatedTracesNumber = 300; 
 	/* The maxim distance between 2 trace nodes */
 	public static int routesNb = 200; 
 	/* The maxim depth for the finding paths algorithm */

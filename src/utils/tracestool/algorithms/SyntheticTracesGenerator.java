@@ -91,7 +91,7 @@ public class SyntheticTracesGenerator {
 			}
 		}
 
-		for( int i = 925; i < SyntheticTracesGeneratorParams.generatedTracesNumber; i++ )
+		for( int i = 0; i < SyntheticTracesGeneratorParams.generatedTracesNumber; i++ )
 		{
 			String name = "joints_" + GenericParams.mapConfig.getCity();
 			name += "_gen" + i + ".txt";
