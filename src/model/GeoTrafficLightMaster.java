@@ -111,7 +111,6 @@ public class GeoTrafficLightMaster extends Entity{
 		}
 		
 		if (Globals.useDynamicTrafficLights) {
-			//System.out.println("Check color:" + this.getId() + " Queue size:" + waitingQueue.size());
 			if (waitingQueue.size() == 1 && canUpdateColorsDynamic()) {
 				/* Set green for this queue */
 				/* set next phase time */
@@ -124,7 +123,6 @@ public class GeoTrafficLightMaster extends Entity{
 				
 				if (getTrafficLightColor(waitingQueue.keySet().iterator().next().getFirst(), waitingQueue.keySet().iterator().next().getSecond())
 						== Color.red) {
-					//System.out.println("Change color " + this.getId());
 					setChangeColor();
 				}
 				
@@ -170,9 +168,6 @@ public class GeoTrafficLightMaster extends Entity{
 							if (getTrafficLightColor(maxQueueKey.getFirst(), maxQueueKey.getSecond())
 									== Color.red) {
 								setChangeColor();
-								/*System.out.println("Change color: " + this.getId() + " " + 
-										getTrafficLightColor(maxQueueKey.getFirst(), maxQueueKey.getSecond()) + " " + 
-												maxQueueKey.getFirst() + " " + maxQueueKey.getSecond());*/
 							}
 							
 							/* Waiting queue statistics */
@@ -185,18 +180,13 @@ public class GeoTrafficLightMaster extends Entity{
 							waitingQueue.clear();
 							return;	
 					}
-		//				
-		//				if (getTrafficLightColor(maxQueueKey.getFirst(), maxQueueKey.getSecond())
-		//						== Color.green) {
-		//					timeCurrentPhase = Globals.maxTrafficLightTime;
-		//				}
 	
-						timeCurrentPhase = Globals.normalTrafficLightTime;
-						setChangeColor();
-						/* restart phase */
-						maxNoCarsWaiting = 0;
-						maxQueueKey = null;
-						waitingQueue.clear();
+					timeCurrentPhase = Globals.normalTrafficLightTime;
+					setChangeColor();
+					/* restart phase */
+					maxNoCarsWaiting = 0;
+					maxQueueKey = null;
+					waitingQueue.clear();
 				}
 			}
 		}
@@ -217,7 +207,6 @@ public class GeoTrafficLightMaster extends Entity{
 	
 	public boolean timeExpired() {
 		if (SimulationEngine.getInstance().getSimulationTime() - simulationTimeLastChange >= timeCurrentPhase) {
-			//System.out.println("time expired " + SimulationEngine.getInstance().getSimulationTime());
 			return true;
 		}
 		return false;
@@ -272,9 +261,7 @@ public class GeoTrafficLightMaster extends Entity{
 		NetworkInterface net = this.getNetworkInterface(NetworkType.Net_WiFi);
 		List<NetworkInterface> discoveredTrafficLightMasters = ((NetworkWiFi)net).discoverClosestsTrafficLightMasters();
 
-		//System.out.println("Send to neighbors from " + this.getId());
 		for (NetworkInterface discoveredTrafficLightMaster : discoveredTrafficLightMasters) {
-			//System.out.println("neigh: " + discoveredTrafficLightMaster.getOwner().getId());
 			
 			Message msg = new Message(this.getId(), discoveredTrafficLightMaster.getOwner().getId(), null, 
 					MessageType.SYNCHRONIZE_TRAFFIC_LIGHTS, ApplicationType.SYNCHRONIZE_INTERSECTIONS_APP);
@@ -311,41 +298,9 @@ public class GeoTrafficLightMaster extends Entity{
 //			System.out.println(this.getId() + " synchronize with neighbour no cars:" + noCars);
 		}
 		else {
-//			System.out.println(mobility.streetsGraph.get(data.getWayId()).min_lat + " " +
-//					mobility.streetsGraph.get(data.getWayId()).max_lat + " / " +
-//					mobility.streetsGraph.get(data.getWayId()).min_long + " " +
-//					mobility.streetsGraph.get(data.getWayId()).max_long);
-//			
-//			Way way = mobility.streetsGraph.get(data.getWayId());
-//			Vector<Long> wayNeighs = way.neighs.get(this.getNode().id);
-//			
-//			for (Long w : wayNeighs) {
-//				System.out.println("Neigh: " + mobility.streetsGraph.get(w).min_lat + " " +
-//						mobility.streetsGraph.get(w).max_lat + " / " +
-//						mobility.streetsGraph.get(w).min_long + " " +
-//						mobility.streetsGraph.get(w).max_long);
-//			}
-			
-			//System.out.println("Data nodes" + mobility.streetsGraph.get(data.getWayId()).nodes);
-			/*
-			 * 
-			 */
 			for (TrafficLightView k : trafficLightViewList) {
 	
-//				System.out.println(mobility.streetsGraph.get(k.getWayId()).getAllNeighbors().contains(data.getWayId()));
-//				//System.out.println(mobility.streetsGraph.get(k.getWayId()).nodes);
-//				System.out.println(k.getWayId());
-//				if (mobility.streetsGraph.get(k.getWayId()).getAllNeighbors().contains(data.getWayId()) == true) {
-//				key = new Pair<Long, Integer>(k.getWayId(), data.getDirection());
-//				//int noCars = noCarsWaiting.get(key);
-//				//System.out.println("No cars " + noCars);
-//				System.out.println("put " + k.getDirection() + " " + data.getDirection());
-//				noCarsWaiting.put(key, data.getQueueSize());
-//				}
 				if (link == k.getWayId()) {
-//					System.out.println("Found traffic light view: " + k.getWayId() + " " + k.getDirection());
-					//System.out.println("Change color because of neighbour: traffic light master:" + this.getId() 
-					//					+ " way id:" + k.getWayId() + " direction:" + k.getDirection());
 					key = new Pair<Long, Integer>(k.getWayId(), k.getDirection());
 					if (waitingQueue.containsKey(key)) {
 						Pair<Long, Integer> value = new Pair<Long, Integer>
@@ -359,7 +314,6 @@ public class GeoTrafficLightMaster extends Entity{
 					}
 				}
 			}
-//			System.out.println("not contain key");
 		}
 	}
 	
