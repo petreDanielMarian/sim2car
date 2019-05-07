@@ -110,7 +110,6 @@ public class RoutingApplicationCar extends Application {
 	 * Sets the speed, acceleration and instant fuel consumption
 	 */
 	private void computeInstantFuelConsumption() {
-		if (!car.isReachDestination()) {
 			if (car.oldSpeed == car.speed)
 				car.acceleration = 0;
 			
@@ -120,7 +119,7 @@ public class RoutingApplicationCar extends Application {
 			double instantFuelConsumtion = ComputeAverageFuelConsumption.computeFuel(car.speed, car.acceleration);
 			double fuelConsumption = instantFuelConsumtion * deltaTime;
 	
-			car.fuelFromStart += fuelConsumption;
+			car.routeFuelFromStart += fuelConsumption;
 			
 			/* For full fuel consumption statistics - only for one car */
 			if (Globals.carIdFuelStatistics == car.getId()) {
@@ -131,7 +130,6 @@ public class RoutingApplicationCar extends Application {
 			
 			car.lastTime = SimulationEngine.getInstance().getSimulationTime();
 			car.oldSpeed = car.speed;
-		}
 	}
 
 	public Node lastIntersection = null;
@@ -326,9 +324,9 @@ public class RoutingApplicationCar extends Application {
 	/***
 	 * Sets simulation time, real time in seconds, avg speed
 	 */
-	public void setTimeReachDestination() {
+	public void computeRouteReachDestinationValues() {
 		String value;
-		
+		/*
 		if (this.car.isReachDestination()) {
 			value = String.valueOf(car.timeReachDest - car.startTime);
 			
@@ -339,12 +337,11 @@ public class RoutingApplicationCar extends Application {
 					(car.timeReachDest - car.startTime));
 			value += " " + avgSpeed + " " + avgFuelConsumption;		
 			timeReachDestination.put(car.getId(), value);
-		}
+		}*/
 	}
 
 	@Override
 	public String stop() {
-		setTimeReachDestination();
 		return null;
 	}
 	

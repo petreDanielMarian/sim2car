@@ -45,6 +45,7 @@ public class SyntheticTracesGenerator {
 
 		/* load the graph */
 		logger.info("Starting to load the OSM graph");
+		System.out.println(limits.toString());
 
 		long startTime = System.currentTimeMillis();
 

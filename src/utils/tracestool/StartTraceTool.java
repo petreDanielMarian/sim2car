@@ -6,6 +6,7 @@ import utils.tracestool.algorithms.BetweennessCentralityParallel2;
 import utils.tracestool.algorithms.JunctionsDetection;
 import utils.tracestool.algorithms.OSMGraph;
 import utils.tracestool.algorithms.PageRank;
+import utils.tracestool.algorithms.SyntheticTracesGenerator;
 import utils.tracestool.algorithms.TracesCorrection;
 import utils.tracestool.algorithms.TracesInterpolation;
 import model.parameters.Globals;
@@ -23,8 +24,9 @@ public class StartTraceTool {
 		//JunctionsDetection.getJunctionsDetection();
 		//PageRank.determinePageRank();
 		//BetweennessCentrality.determineBetweennessCentrality();
-		BetweennessCentralityParallel.determineBetweennessCentrality();
+		//BetweennessCentralityParallel.determineBetweennessCentrality();
 		//BetweennessCentralityParallel2.determineBetweennessCentrality();
+		SyntheticTracesGenerator.getSyntheticTraces();
 	}
 
 }
